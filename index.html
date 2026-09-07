@@ -544,6 +544,20 @@ function uploadToR2(file) {
     .then(data => data.url);
 }
 
+// Borra una foto de R2 y descuenta 1 del contador de la tienda. Si la URL no
+// es una foto real (por ejemplo, la imagen de respaldo/placeholder) no hace nada.
+// Nunca bloquea el flujo principal: si falla, solo se registra en consola.
+function deleteFromR2(url) {
+  if (!url || url === FALLBACK_IMG) return Promise.resolve();
+  const formData = new FormData();
+  formData.append('action', 'delete');
+  formData.append('storeId', storeId);
+  formData.append('url', url);
+  return fetch(UPLOAD_WORKER_URL, { method: 'POST', body: formData })
+    .then(res => res.json().catch(() => ({})))
+    .catch(err => { console.error('Error al borrar la imagen anterior:', err); });
+}
+
 let storeWhatsapp = ""; // número de WhatsApp propio de cada tienda, se carga desde Firestore
 let pendingWhatsAppText = '';
 
@@ -1147,22 +1161,33 @@ function saveLogo() {
   closeModals();
   showToast(t('toast_uploading_logo'));
 
-  uploadToR2(file).then(url => {
-    return storeRef().set({ logoUrl: url }, { merge: true });
-  }).then(() => {
-    document.getElementById('newLogoImg').value = '';
-    loadStoreConfig();
-    showToast(t('toast_logo_updated'));
-  }).catch(err => alert(t('alert_logo_upload_error') + err.message));
+  storeRef().get()
+    .then(doc => {
+      const oldLogoUrl = doc.exists ? doc.data().logoUrl : null;
+      return oldLogoUrl ? deleteFromR2(oldLogoUrl) : Promise.resolve();
+    })
+    .then(() => uploadToR2(file))
+    .then(url => storeRef().set({ logoUrl: url }, { merge: true }))
+    .then(() => {
+      document.getElementById('newLogoImg').value = '';
+      loadStoreConfig();
+      showToast(t('toast_logo_updated'));
+    }).catch(err => alert(t('alert_logo_upload_error') + err.message));
 }
 
 function removeLogo() {
   if (!isAdmin) return alert(t('alert_not_authorized'));
   closeModals();
-  storeRef().set({ logoUrl: '' }, { merge: true }).then(() => {
-    loadStoreConfig();
-    showToast(t('toast_logo_removed'));
-  }).catch(err => alert(t('alert_generic_error') + err.message));
+  storeRef().get()
+    .then(doc => {
+      const oldLogoUrl = doc.exists ? doc.data().logoUrl : null;
+      return (oldLogoUrl ? deleteFromR2(oldLogoUrl) : Promise.resolve())
+        .then(() => storeRef().set({ logoUrl: '' }, { merge: true }));
+    })
+    .then(() => {
+      loadStoreConfig();
+      showToast(t('toast_logo_removed'));
+    }).catch(err => alert(t('alert_generic_error') + err.message));
 }
 
 function loadProducts() {
@@ -1415,7 +1440,13 @@ function saveProduct() {
   };
 
   if(file) {
-    uploadToR2(file)
+    // Si estamos editando y ya había una foto real, la borramos primero para
+    // liberar el cupo (así "reemplazar" no cuenta como una foto nueva extra).
+    const existingProduct = editId ? allProducts.find(x => x.id === editId) : null;
+    const oldImageUrl = existingProduct ? existingProduct.image : null;
+
+    (oldImageUrl ? deleteFromR2(oldImageUrl) : Promise.resolve())
+      .then(() => uploadToR2(file))
       .then(url => saveData(url))
       .catch(err => alert(t('alert_image_upload_error') + err.message));
   } else {
@@ -1426,7 +1457,11 @@ function saveProduct() {
 function deleteProduct(id) {
   if(!isAdmin) return;
   if(confirm(t('confirm_delete_product'))) {
-    storeCol('products').doc(id).delete().then(() => showToast(t('toast_product_deleted')));
+    const p = allProducts.find(x => x.id === id);
+    storeCol('products').doc(id).delete().then(() => {
+      showToast(t('toast_product_deleted'));
+      if (p && p.image) deleteFromR2(p.image);
+    });
   }
 }
 
