@@ -520,12 +520,12 @@ const UPLOAD_WORKER_URL = "https://generalfoto.raipimo37.workers.dev/";
 // acumulada en el campo "photosUploaded" de Firestore. El contador NUNCA baja
 // al borrar o reemplazar una foto, porque el archivo sigue ocupando espacio
 // en R2 (este código no borra archivos de Cloudflare al eliminar/editar un
-// producto). MAX_STORE_PHOTOS aquí es solo para mostrar el "X / 6" en la UI:
+// producto). MAX_STORE_PHOTOS aquí es solo para mostrar el "X / 7" en la UI:
 // el límite que realmente se aplica vive en el Worker de Cloudflare, que es
 // quien lee y aumenta "photosUploaded" de forma autoritativa (usando una
 // cuenta de servicio de Firebase), así que no se puede saltar editando el
 // JavaScript del navegador.
-const MAX_STORE_PHOTOS = 6;
+const MAX_STORE_PHOTOS = 7;
 
 function uploadToR2(file) {
   const formData = new FormData();
