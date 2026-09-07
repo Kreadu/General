@@ -526,6 +526,7 @@ const UPLOAD_WORKER_URL = "https://generalfoto.raipimo37.workers.dev/";
 // cuenta de servicio de Firebase), así que no se puede saltar editando el
 // JavaScript del navegador.
 const MAX_STORE_PHOTOS = 7;
+const MAX_STORE_PRODUCTS = 6;
 
 function uploadToR2(file) {
   const formData = new FormData();
@@ -589,6 +590,7 @@ const I18N = {
     alert_stock_negative:'El stock no puede ser negativo.', alert_min_stock_negative:'El stock mínimo no puede ser negativo.',
     toast_operation_success:'¡Operación exitosa!', alert_generic_error:'Error: ', alert_image_upload_error:'Error al subir imagen: ',
     alert_photo_limit_reached:'Límite alcanzado: esta tienda ya subió el máximo de {max} fotos permitidas.', photo_usage_label:'Fotos usadas',
+    alert_product_limit_reached:'Has alcanzado el límite de {max} productos/servicios de tu plan. Para ampliarlo, contáctanos por WhatsApp a alguno de los números que aparecen al final de esta página, o escríbenos a is@kreadu.com.',
     toast_updating_product:'Actualizando producto...', toast_saving_product:'Guardando producto...',
     logo_tooltip:'Logo de la tienda', show_password_tooltip:'Mostrar contraseña', add_category_tooltip:'Agregar categoría', delete_category_tooltip:'Eliminar categoría',
     product_name_placeholder:'Nombre del Artículo', product_price_placeholder:'Precio ($)',
@@ -684,6 +686,7 @@ const I18N = {
     alert_stock_negative:'Stock cannot be negative.', alert_min_stock_negative:'Minimum stock cannot be negative.',
     toast_operation_success:'Success!', alert_generic_error:'Error: ', alert_image_upload_error:'Error uploading image: ',
     alert_photo_limit_reached:'Limit reached: this store already uploaded the maximum of {max} allowed photos.', photo_usage_label:'Photos used',
+    alert_product_limit_reached:'You have reached your plan\'s limit of {max} products/services. To expand it, contact us on WhatsApp at one of the numbers shown at the bottom of this page, or email is@kreadu.com.',
     toast_updating_product:'Updating product...', toast_saving_product:'Saving product...',
     logo_tooltip:'Store logo', show_password_tooltip:'Show password', add_category_tooltip:'Add category', delete_category_tooltip:'Delete category',
     product_name_placeholder:'Item name', product_price_placeholder:'Price ($)',
@@ -779,6 +782,7 @@ const I18N = {
     alert_stock_negative:'Le stock ne peut pas être négatif.', alert_min_stock_negative:'Le stock minimum ne peut pas être négatif.',
     toast_operation_success:'Opération réussie !', alert_generic_error:'Erreur : ', alert_image_upload_error:'Erreur lors de l\'envoi de l\'image : ',
     alert_photo_limit_reached:'Limite atteinte : cette boutique a déjà téléchargé le maximum de {max} photos autorisées.', photo_usage_label:'Photos utilisées',
+    alert_product_limit_reached:'Vous avez atteint la limite de {max} produits/services de votre forfait. Pour l\'augmenter, contactez-nous sur WhatsApp à l\'un des numéros indiqués en bas de cette page, ou écrivez à is@kreadu.com.',
     toast_updating_product:'Mise à jour du produit...', toast_saving_product:'Enregistrement du produit...',
     logo_tooltip:'Logo de la boutique', show_password_tooltip:'Afficher le mot de passe', add_category_tooltip:'Ajouter une catégorie', delete_category_tooltip:'Supprimer la catégorie',
     product_name_placeholder:'Nom de l\'article', product_price_placeholder:'Prix ($)',
@@ -1338,6 +1342,9 @@ function filterProducts() { currentSearch = document.getElementById('searchInput
 
 function openAddModal() {
   if (!isAdmin) return alert(t('alert_admin_login_required'));
+  if (allProducts.length >= MAX_STORE_PRODUCTS) {
+    return alert(t('alert_product_limit_reached').replace('{max}', MAX_STORE_PRODUCTS));
+  }
   document.getElementById('modalProductTitle').textContent = t('upload_product_title');
   document.getElementById('editProdId').value = '';
   document.getElementById('newProdName').value = '';
@@ -1382,6 +1389,9 @@ function saveProduct() {
   if(!name || !price || !cat) return alert(t('alert_required_fields'));
   if(stock !== '' && Number(stock) < 0) return alert(t('alert_stock_negative'));
   if(minStock !== '' && Number(minStock) < 0) return alert(t('alert_min_stock_negative'));
+  if(!editId && allProducts.length >= MAX_STORE_PRODUCTS) {
+    return alert(t('alert_product_limit_reached').replace('{max}', MAX_STORE_PRODUCTS));
+  }
 
   closeModals();
   showToast(editId ? t('toast_updating_product') : t('toast_saving_product'));
