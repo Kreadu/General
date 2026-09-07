@@ -517,47 +517,27 @@ const UPLOAD_WORKER_URL = "https://generalfoto.raipimo37.workers.dev/";
 // ===== LÍMITE GLOBAL DE FOTOS POR TIENDA =====
 // Cada tienda (documento stores/{storeId}) solo puede subir un máximo de
 // MAX_STORE_PHOTOS fotos en total (productos + logo), contadas de forma
-// acumulada en el campo "photosUploaded". El contador NUNCA baja al borrar
-// o reemplazar una foto, porque el archivo sigue ocupando espacio en R2
-// (este código no borra archivos de Cloudflare al eliminar/editar un producto).
+// acumulada en el campo "photosUploaded" de Firestore. El contador NUNCA baja
+// al borrar o reemplazar una foto, porque el archivo sigue ocupando espacio
+// en R2 (este código no borra archivos de Cloudflare al eliminar/editar un
+// producto). MAX_STORE_PHOTOS aquí es solo para mostrar el "X / 6" en la UI:
+// el límite que realmente se aplica vive en el Worker de Cloudflare, que es
+// quien lee y aumenta "photosUploaded" de forma autoritativa (usando una
+// cuenta de servicio de Firebase), así que no se puede saltar editando el
+// JavaScript del navegador.
 const MAX_STORE_PHOTOS = 6;
-
-// Reserva un "cupo" de foto de forma atómica antes de subir el archivo.
-// Si la tienda ya alcanzó el máximo, rechaza la promesa sin gastar ancho de banda.
-function reservePhotoSlot() {
-  return db.runTransaction(tx => {
-    return tx.get(storeRef()).then(doc => {
-      const current = (doc.exists && doc.data().photosUploaded) || 0;
-      if (current >= MAX_STORE_PHOTOS) {
-        throw new Error(t('alert_photo_limit_reached').replace('{max}', MAX_STORE_PHOTOS));
-      }
-      tx.set(storeRef(), { photosUploaded: current + 1 }, { merge: true });
-      return current + 1;
-    });
-  });
-}
-
-// Si la subida a Cloudflare falla después de reservar el cupo, lo devolvemos.
-function releasePhotoSlot() {
-  return storeRef().set({ photosUploaded: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(() => {});
-}
-
-// Sube un archivo respetando el límite de fotos de la tienda.
-function uploadToR2Limited(file) {
-  return reservePhotoSlot().then(() => {
-    return uploadToR2(file).catch(err => {
-      releasePhotoSlot();
-      throw err;
-    });
-  });
-}
 
 function uploadToR2(file) {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('storeId', storeId);
   return fetch(UPLOAD_WORKER_URL, { method: 'POST', body: formData })
     .then(res => {
-      if (!res.ok) throw new Error('Error al subir la imagen (' + res.status + ')');
+      if (!res.ok) {
+        return res.json().catch(() => null).then(body => {
+          throw new Error(body && body.error ? body.error : ('Error al subir la imagen (' + res.status + ')'));
+        });
+      }
       return res.json();
     })
     .then(data => data.url);
@@ -1163,7 +1143,7 @@ function saveLogo() {
   closeModals();
   showToast(t('toast_uploading_logo'));
 
-  uploadToR2Limited(file).then(url => {
+  uploadToR2(file).then(url => {
     return storeRef().set({ logoUrl: url }, { merge: true });
   }).then(() => {
     document.getElementById('newLogoImg').value = '';
@@ -1425,7 +1405,7 @@ function saveProduct() {
   };
 
   if(file) {
-    uploadToR2Limited(file)
+    uploadToR2(file)
       .then(url => saveData(url))
       .catch(err => alert(t('alert_image_upload_error') + err.message));
   } else {
