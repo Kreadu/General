@@ -280,9 +280,14 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
         <button class="filter-chip active" data-filter="all" onclick="setCategory('all')" data-i18n="filter_all">Todo</button>
       </div>
       <div id="adminControlsArea" style="display:none; margin-bottom:15px;">
-        <button class="whatsapp-btn" style="background:var(--text-primary); margin-top:0; margin-bottom:8px;" onclick="openAddModal()" data-i18n="admin_upload_btn">
-          ➕ Subir Producto Nuevo
-        </button>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button class="whatsapp-btn" style="background:var(--text-primary); margin-top:0; margin-bottom:0; flex:1;" onclick="openAddModal()" data-i18n="admin_upload_btn">
+            ➕ Subir Producto Nuevo
+          </button>
+          <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:0; flex:1;" onclick="openCategoryModal()" data-i18n="admin_create_category_btn">
+            📁 Crear Categoría
+          </button>
+        </div>
         <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:8px;" onclick="copyStoreLink()" data-i18n="admin_share_link_btn">
           📋 Compartir el link de mi tienda
         </button>
@@ -577,6 +582,7 @@ const I18N = {
     tab_catalogo:'Catálogo', tab_carrito:'Carrito', tab_pedidos:'Pedidos', tab_chat:'Chat',
     search_placeholder:'Buscar', filter_all:'Todo',
     admin_upload_btn:'➕ Subir Producto Nuevo',
+    admin_create_category_btn:'📁 Crear Categoría',
     admin_share_link_btn:'📋 Compartir el link de mi tienda', admin_settings_btn:'⚙️ Configurar mi tienda', admin_exit_btn:'🔓 Salir del modo administrador',
     toast_store_created_share_hint:'🎉 ¡Tu tienda está lista! Copia tu link de abajo y compártelo con tus clientes para que puedan comprarte.',
     stock_all:'Todos', stock_available:'Disponibles', stock_low:'Poco stock', stock_out:'Agotados',
@@ -676,6 +682,7 @@ const I18N = {
     tab_catalogo:'Catalog', tab_carrito:'Cart', tab_pedidos:'Orders', tab_chat:'Chat',
     search_placeholder:'Search', filter_all:'All',
     admin_upload_btn:'➕ Upload New Item',
+    admin_create_category_btn:'📁 Create Category',
     admin_share_link_btn:'📋 Share my store link', admin_settings_btn:'⚙️ Store settings', admin_exit_btn:'🔓 Exit admin mode',
     toast_store_created_share_hint:'🎉 Your store is ready! Copy your link below and share it with your customers so they can buy from you.',
     stock_all:'All', stock_available:'Available', stock_low:'Low stock', stock_out:'Out of stock',
@@ -775,6 +782,7 @@ const I18N = {
     tab_catalogo:'Catalogue', tab_carrito:'Panier', tab_pedidos:'Commandes', tab_chat:'Chat',
     search_placeholder:'Rechercher', filter_all:'Tout',
     admin_upload_btn:'➕ Ajouter un article',
+    admin_create_category_btn:'📁 Créer une catégorie',
     admin_share_link_btn:'📋 Partager le lien de ma boutique', admin_settings_btn:'⚙️ Paramètres de ma boutique', admin_exit_btn:'🔓 Quitter le mode administrateur',
     toast_store_created_share_hint:'🎉 Votre boutique est prête ! Copiez votre lien ci-dessous et partagez-le avec vos clients pour permettre vos ventes.',
     stock_all:'Tous', stock_available:'Disponibles', stock_low:'Stock faible', stock_out:'Épuisé',
