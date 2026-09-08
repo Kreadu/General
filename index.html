@@ -281,6 +281,12 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
         <button class="whatsapp-btn" style="background:var(--text-primary); margin-top:0; margin-bottom:8px;" onclick="openAddModal()" data-i18n="admin_upload_btn">
           ➕ Subir Producto Nuevo
         </button>
+        <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:8px;" onclick="copyStoreLink()" data-i18n="admin_share_link_btn">
+          📋 Compartir el link de mi tienda
+        </button>
+        <button class="btn-sm" style="width:100%; justify-content:center; color:var(--danger); border-color:var(--danger);" onclick="logoutAdmin()" data-i18n="admin_exit_btn">
+          🔓 Salir del modo administrador
+        </button>
       </div>
       
       <div class="stock-filter-bar" id="stockFilterBar" style="display:none;">
@@ -566,6 +572,8 @@ const I18N = {
     tab_catalogo:'Catálogo', tab_carrito:'Carrito', tab_pedidos:'Pedidos', tab_chat:'Chat',
     search_placeholder:'Buscar', filter_all:'Todo',
     admin_upload_btn:'➕ Subir Producto Nuevo',
+    admin_share_link_btn:'📋 Compartir el link de mi tienda', admin_exit_btn:'🔓 Salir del modo administrador',
+    toast_store_created_share_hint:'🎉 ¡Tu tienda está lista! Copia tu link de abajo y compártelo con tus clientes para que puedan comprarte.',
     stock_all:'Todos', stock_available:'Disponibles', stock_low:'Poco stock', stock_out:'Agotados',
     loading_catalog:'Cargando catálogo...', no_products:'No hay productos o servicios disponibles',
     add_btn:'Agregar', not_available:'No disponible', not_available_admin:'No disponible · Puedes editarla o borrarla',
@@ -662,6 +670,8 @@ const I18N = {
     tab_catalogo:'Catalog', tab_carrito:'Cart', tab_pedidos:'Orders', tab_chat:'Chat',
     search_placeholder:'Search', filter_all:'All',
     admin_upload_btn:'➕ Upload New Item',
+    admin_share_link_btn:'📋 Share my store link', admin_exit_btn:'🔓 Exit admin mode',
+    toast_store_created_share_hint:'🎉 Your store is ready! Copy your link below and share it with your customers so they can buy from you.',
     stock_all:'All', stock_available:'Available', stock_low:'Low stock', stock_out:'Out of stock',
     loading_catalog:'Loading catalog...', no_products:'No items available',
     add_btn:'Add', not_available:'Not available', not_available_admin:'Not available · You can edit or delete it',
@@ -758,6 +768,8 @@ const I18N = {
     tab_catalogo:'Catalogue', tab_carrito:'Panier', tab_pedidos:'Commandes', tab_chat:'Chat',
     search_placeholder:'Rechercher', filter_all:'Tout',
     admin_upload_btn:'➕ Ajouter un article',
+    admin_share_link_btn:'📋 Partager le lien de ma boutique', admin_exit_btn:'🔓 Quitter le mode administrateur',
+    toast_store_created_share_hint:'🎉 Votre boutique est prête ! Copiez votre lien ci-dessous et partagez-le avec vos clients pour permettre vos ventes.',
     stock_all:'Tous', stock_available:'Disponibles', stock_low:'Stock faible', stock_out:'Épuisé',
     loading_catalog:'Chargement du catalogue...', no_products:'Aucun article disponible',
     add_btn:'Ajouter', not_available:'Non disponible', not_available_admin:'Non disponible · Vous pouvez la modifier ou la supprimer',
@@ -973,6 +985,14 @@ function onAdminStatusReady() {
   loadCategories();
   loadProducts();
   loadOrders();
+
+  if(isAdmin && sessionStorage.getItem('justCreatedStore') === '1') {
+    sessionStorage.removeItem('justCreatedStore');
+    setTimeout(() => {
+      openAccountModal();
+      showToast(t('toast_store_created_share_hint'));
+    }, 400);
+  }
 }
 
 function openAdminPanel() {
@@ -1072,6 +1092,7 @@ function createStore() {
   }).then(newStoreId => {
     closeModals();
     showToast(t('toast_store_created'));
+    sessionStorage.setItem('justCreatedStore', '1');
     goToStore(newStoreId);
   }).catch(e => alert(t('alert_login_error') + e.message));
 }
