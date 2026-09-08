@@ -420,7 +420,7 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:12px;">
         <input type="number" id="newProdPrice" class="form-input" style="flex:1; margin-bottom:0;" placeholder="Precio" data-i18n-placeholder="product_price_placeholder" min="0" step="0.01">
         <select id="newProdCurrency" class="form-input" style="flex:0 0 155px; margin-bottom:0;" aria-label="Moneda" data-i18n-aria-label="currency_label">
-          <option value="COP">$ COP — Peso</option>
+          <option value="COP">$ Peso — Peso</option>
           <option value="EUR">€ EUR — Euro</option>
           <option value="USD">US$ USD — Dólar</option>
         </select>
@@ -1352,7 +1352,7 @@ function closeImageLightbox() {
 
 function getCurrencyInfo(currency) {
   const currencies = {
-    COP: { symbol:'$', code:'COP', name:'Peso colombiano', locale:'es-CO' },
+    COP: { symbol:'$', code:'PESO', name:'Peso', locale:'es-CO' },
     EUR: { symbol:'€', code:'EUR', name:'Euro', locale:'de-DE' },
     USD: { symbol:'US$', code:'USD', name:'Dólar estadounidense', locale:'en-US' }
   };
