@@ -417,7 +417,14 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       </div>
       <input type="hidden" id="editProdId">
       <input type="text" id="newProdName" class="form-input" placeholder="Nombre del Producto o Servicio" data-i18n-placeholder="product_name_placeholder">
-      <input type="number" id="newProdPrice" class="form-input" placeholder="Precio ($)" data-i18n-placeholder="product_price_placeholder">
+      <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:12px;">
+        <input type="number" id="newProdPrice" class="form-input" style="flex:1; margin-bottom:0;" placeholder="Precio" data-i18n-placeholder="product_price_placeholder" min="0" step="0.01">
+        <select id="newProdCurrency" class="form-input" style="flex:0 0 155px; margin-bottom:0;" aria-label="Moneda" data-i18n-aria-label="currency_label">
+          <option value="COP">$ COP — Peso</option>
+          <option value="EUR">€ EUR — Euro</option>
+          <option value="USD">US$ USD — Dólar</option>
+        </select>
+      </div>
       <div style="display:flex; gap:8px; align-items:flex-start;">
         <select id="newProdCat" class="form-input" style="flex:1;">
           <option value="" data-i18n="select_category">Selecciona una categoría</option>
@@ -627,7 +634,7 @@ const I18N = {
     alert_product_limit_reached:'Has alcanzado el límite de {max} productos/servicios de tu plan. Para ampliarlo, contáctanos por WhatsApp a alguno de los números que aparecen al final de esta página, o escríbenos a is@kreadu.com.',
     toast_updating_product:'Actualizando producto...', toast_saving_product:'Guardando producto...',
     logo_tooltip:'Logo de la tienda', show_password_tooltip:'Mostrar contraseña', add_category_tooltip:'Agregar categoría', delete_category_tooltip:'Eliminar categoría',
-    product_name_placeholder:'Nombre del Artículo', product_price_placeholder:'Precio ($)',
+    product_name_placeholder:'Nombre del Artículo', product_price_placeholder:'Precio', currency_label:'Moneda',
     select_category:'Selecciona una categoría', add_category_btn:'+ Categoría',
     product_size_placeholder:'Talla(s) (ej: S, M, L o Única)', product_colors_placeholder:'Color(es) (ej: Rojo, Negro, Azul)',
     current_stock_label:'Stock actual:', quantity_placeholder:'Cantidad',
@@ -727,7 +734,7 @@ const I18N = {
     alert_product_limit_reached:'You have reached your plan\'s limit of {max} products/services. To expand it, contact us on WhatsApp at one of the numbers shown at the bottom of this page, or email is@kreadu.com.',
     toast_updating_product:'Updating product...', toast_saving_product:'Saving product...',
     logo_tooltip:'Store logo', show_password_tooltip:'Show password', add_category_tooltip:'Add category', delete_category_tooltip:'Delete category',
-    product_name_placeholder:'Item name', product_price_placeholder:'Price ($)',
+    product_name_placeholder:'Item name', product_price_placeholder:'Price', currency_label:'Currency',
     select_category:'Select a category', add_category_btn:'+ Category',
     product_size_placeholder:'Size(s) (e.g. S, M, L or One Size)', product_colors_placeholder:'Color(s) (e.g. Red, Black, Blue)',
     current_stock_label:'Current stock:', quantity_placeholder:'Quantity',
@@ -827,7 +834,7 @@ const I18N = {
     alert_product_limit_reached:'Vous avez atteint la limite de {max} produits/services de votre forfait. Pour l\'augmenter, contactez-nous sur WhatsApp à l\'un des numéros indiqués en bas de cette page, ou écrivez à is@kreadu.com.',
     toast_updating_product:'Mise à jour du produit...', toast_saving_product:'Enregistrement du produit...',
     logo_tooltip:'Logo de la boutique', show_password_tooltip:'Afficher le mot de passe', add_category_tooltip:'Ajouter une catégorie', delete_category_tooltip:'Supprimer la catégorie',
-    product_name_placeholder:'Nom de l\'article', product_price_placeholder:'Prix ($)',
+    product_name_placeholder:'Nom de l\'article', product_price_placeholder:'Prix', currency_label:'Devise',
     select_category:'Choisissez une catégorie', add_category_btn:'+ Catégorie',
     product_size_placeholder:'Taille(s) (ex : S, M, L ou Unique)', product_colors_placeholder:'Couleur(s) (ex : Rouge, Noir, Bleu)',
     current_stock_label:'Stock actuel :', quantity_placeholder:'Quantité',
@@ -1343,6 +1350,42 @@ function closeImageLightbox() {
   document.getElementById('imageLightbox').classList.remove('active');
 }
 
+function getCurrencyInfo(currency) {
+  const currencies = {
+    COP: { symbol:'$', code:'COP', name:'Peso colombiano', locale:'es-CO' },
+    EUR: { symbol:'€', code:'EUR', name:'Euro', locale:'de-DE' },
+    USD: { symbol:'US$', code:'USD', name:'Dólar estadounidense', locale:'en-US' }
+  };
+  return currencies[currency] || currencies.COP;
+}
+
+function formatMoney(value, currency='COP') {
+  const info = getCurrencyInfo(currency);
+  const number = Number(value) || 0;
+  try {
+    const formatted = new Intl.NumberFormat(info.locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(number);
+    return `${info.symbol} ${formatted} ${info.code}`;
+  } catch(e) {
+    return `${info.symbol} ${number} ${info.code}`;
+  }
+}
+
+function getCurrencyTotals(items) {
+  return items.reduce((totals, item) => {
+    const currency = item.currency || 'COP';
+    totals[currency] = (totals[currency] || 0) + (Number(item.price) || 0) * (Number(item.qty) || 0);
+    return totals;
+  }, {});
+}
+
+function formatCurrencyTotals(totals) {
+  if (!totals || typeof totals !== 'object') return '';
+  return Object.entries(totals).map(([currency, total]) => formatMoney(total, currency)).join(' + ');
+}
+
 function renderProducts() {
   const grid = document.getElementById('productGrid');
   const stockFilter = isAdmin ? currentStockFilter : 'all';
@@ -1390,7 +1433,7 @@ function renderProducts() {
         <div class="product-details-text">${t('size_prefix')}: ${escapeHtml(p.size || t('size_default'))} | ${t('color_prefix')}: ${escapeHtml(p.colors || t('color_default'))}</div>
         ${stockText}
         ${warningBadge}
-        <div class="product-price">$${p.price}</div>
+        <div class="product-price">${formatMoney(p.price, p.currency || 'COP')}</div>
         <div class="product-actions">${addBtn}</div>
         ${adminControls}
       </div>
@@ -1410,6 +1453,7 @@ function openAddModal() {
   document.getElementById('editProdId').value = '';
   document.getElementById('newProdName').value = '';
   document.getElementById('newProdPrice').value = '';
+  document.getElementById('newProdCurrency').value = 'COP';
   populateCategorySelect('');
   document.getElementById('newProdSize').value = '';
   document.getElementById('newProdColors').value = '';
@@ -1426,6 +1470,7 @@ function openEditModal(id) {
   document.getElementById('editProdId').value = p.id;
   document.getElementById('newProdName').value = p.name || '';
   document.getElementById('newProdPrice').value = p.price || '';
+  document.getElementById('newProdCurrency').value = p.currency || 'COP';
   populateCategorySelect(p.category || '');
   document.getElementById('newProdSize').value = p.size || '';
   document.getElementById('newProdColors').value = p.colors || '';
@@ -1440,6 +1485,7 @@ function saveProduct() {
   const editId = document.getElementById('editProdId').value;
   const name = document.getElementById('newProdName').value;
   const price = document.getElementById('newProdPrice').value;
+  const currency = document.getElementById('newProdCurrency').value || 'COP';
   const cat = document.getElementById('newProdCat').value.trim();
   const size = document.getElementById('newProdSize').value.trim();
   const colors = document.getElementById('newProdColors').value.trim();
@@ -1459,7 +1505,7 @@ function saveProduct() {
 
   const saveData = (imageUrl) => {
     const dataObj = {
-      name, price: Number(price), category: cat, 
+      name, price: Number(price), currency, category: cat, 
       size: size || t('size_default'), colors: colors || t('color_default'), 
       stock: Number(stock === '' ? 0 : stock), minStock: Number(minStock === '' ? 0 : minStock)
     };
@@ -1508,8 +1554,11 @@ function addToCart(id) {
   const existing = cart.find(item => item.id === id);
   if(existing && existing.qty + 1 > p.stock) return alert(t('toast_no_stock_available'));
 
-  if(existing) existing.qty++; 
-  else cart.push({id, qty:1, name: p.name, price: p.price, image: p.image});
+  if(existing) {
+    existing.qty++;
+    existing.price = p.price;
+    existing.currency = p.currency || 'COP';
+  } else cart.push({id, qty:1, name: p.name, price: p.price, currency: p.currency || 'COP', image: p.image});
   saveCart(); renderCart(); showToast(t('toast_added_to_cart'));
 }
 
@@ -1536,7 +1585,7 @@ function renderCart() {
         <div class="cart-img"><img src="${item.image || FALLBACK_IMG}" onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"></div>
         <div class="cart-details">
           <div class="cart-name">${escapeHtml(item.name)}</div>
-          <div class="cart-price">$${item.price * item.qty}</div>
+          <div class="cart-price">${formatMoney(item.price * item.qty, item.currency || 'COP')}</div>
           <div class="qty-controls">
             <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
             <span class="qty-val">${item.qty}</span>
@@ -1546,7 +1595,7 @@ function renderCart() {
         </div>
       </div>`;
   }).join('');
-  document.getElementById('cartTotal').innerText = '$' + total;
+  document.getElementById('cartTotal').innerText = formatCurrencyTotals(getCurrencyTotals(cart));
 }
 
 function changeQty(index, delta) {
@@ -1571,10 +1620,13 @@ function sendWhatsAppOrder() {
   let total = 0;
   let text = `${t('wa_order_hello')} ${name}${t('wa_order_intro')}\n\n`;
   cart.forEach(item => {
-    text += `• ${item.name} (x${item.qty}) = $${item.price * item.qty}\n`;
+    const currency = item.currency || 'COP';
+    text += `• ${item.name} (x${item.qty}) = ${formatMoney(item.price * item.qty, currency)}\n`;
     total += item.price * item.qty;
   });
-  text += `\n${t('wa_order_total')}: $${total}\n${t('wa_order_phone')}: ${phone}`;
+  const currencyTotals = getCurrencyTotals(cart);
+  const totalText = formatCurrencyTotals(currencyTotals);
+  text += `\n${t('wa_order_total')}: ${totalText}\n${t('wa_order_phone')}: ${phone}`;
 
   const batch = db.batch();
   cart.forEach(item => {
@@ -1587,7 +1639,7 @@ function sendWhatsAppOrder() {
 
   batch.commit().then(() => {
     return storeCol('orders').add({
-      clientId, customerName: name, phone, items: cart, total, status: 'Pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      clientId, customerName: name, phone, items: cart, total, currencyTotals: getCurrencyTotals(cart), status: 'Pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   }).then(() => {
     cart = []; saveCart(); renderCart(); switchView('pedidos');
@@ -1630,7 +1682,7 @@ function renderOrdersList(docs) {
           <span class="order-status status-${o.status}">${escapeHtml(t('status_' + o.status))}</span>
         </div>
         <p style="font-size:13px; color:var(--text-secondary)">${o.items.map(i=>`${escapeHtml(i.name)} (x${i.qty})`).join(', ')}</p>
-        <p><strong>${t('order_total')}: $${o.total}</strong></p>
+        <p><strong>${t('order_total')}: ${o.currencyTotals ? formatCurrencyTotals(o.currencyTotals) : formatMoney(o.total, o.currency || 'COP')}</strong></p>
         ${adminBtns}
       </div>`;
   }).join('');
