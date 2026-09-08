@@ -131,7 +131,9 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
 .whatsapp-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; border:none; border-radius:var(--radius-md); background:var(--positive); color:#fff; font-size:15px; font-weight:600; cursor:pointer; margin-top:16px; box-shadow:0 2px 8px rgba(22,163,74,0.25); }
 
 /* ===== ORDERS & ADMIN ===== */
-.admin-toggle { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface-muted); border-radius:var(--radius-md); margin-bottom:14px; font-size:13px; cursor:pointer; border:1px solid var(--border); font-weight:500; }
+.admin-toggle { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--surface); border-radius:var(--radius-md); margin-bottom:14px; font-size:13.5px; cursor:pointer; border:1.5px solid var(--accent); font-weight:600; color:var(--accent); transition:all var(--transition); }
+.admin-toggle:active { background:var(--surface-muted); }
+.admin-toggle svg { color:var(--accent); flex-shrink:0; }
 .order-card { padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:10px; background:var(--surface); box-shadow:var(--shadow-sm); }
 .order-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
 .order-status { padding:3px 10px; border-radius:var(--radius-full); font-size:11px; font-weight:600; }
@@ -284,6 +286,9 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
         <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:8px;" onclick="copyStoreLink()" data-i18n="admin_share_link_btn">
           📋 Compartir el link de mi tienda
         </button>
+        <button class="btn-sm" style="width:100%; justify-content:center; margin-bottom:8px;" onclick="openAccountModal()" data-i18n="admin_settings_btn">
+          ⚙️ Configurar mi tienda
+        </button>
         <button class="btn-sm" style="width:100%; justify-content:center; color:var(--danger); border-color:var(--danger);" onclick="logoutAdmin()" data-i18n="admin_exit_btn">
           🔓 Salir del modo administrador
         </button>
@@ -316,10 +321,10 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
     </div>
 
     <div id="pedidos" class="view">
-      <div class="admin-toggle" onclick="openAdminPanel()">
+      <div class="admin-toggle" id="adminToggleBar" onclick="openAdminPanel()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span id="adminLabel" data-i18n="admin_label_client">Modo cliente</span>
-        <span style="margin-left:auto;font-size:11px;color:var(--text-quaternary)" data-i18n="admin_lock_hint">Acceso admin 🔒</span>
+        <span id="adminLabel" data-i18n="admin_login_entry">🔑 Iniciar sesión como administrador/a</span>
+        <span style="margin-left:auto;font-size:16px;color:var(--accent);">›</span>
       </div>
       <button id="clearOrdersBtn" onclick="clearAllOrders()" style="display:none; width:100%; padding:10px; border:1px dashed var(--danger); border-radius:var(--radius-md); background:var(--surface); color:var(--danger); font-size:13px; font-weight:600; cursor:pointer; margin-bottom:14px;" data-i18n="clear_orders_btn">🧹 Vaciar todos los pedidos (usar solo para limpiar pruebas)</button>
       <div id="ordersList"></div>
@@ -572,7 +577,7 @@ const I18N = {
     tab_catalogo:'Catálogo', tab_carrito:'Carrito', tab_pedidos:'Pedidos', tab_chat:'Chat',
     search_placeholder:'Buscar', filter_all:'Todo',
     admin_upload_btn:'➕ Subir Producto Nuevo',
-    admin_share_link_btn:'📋 Compartir el link de mi tienda', admin_exit_btn:'🔓 Salir del modo administrador',
+    admin_share_link_btn:'📋 Compartir el link de mi tienda', admin_settings_btn:'⚙️ Configurar mi tienda', admin_exit_btn:'🔓 Salir del modo administrador',
     toast_store_created_share_hint:'🎉 ¡Tu tienda está lista! Copia tu link de abajo y compártelo con tus clientes para que puedan comprarte.',
     stock_all:'Todos', stock_available:'Disponibles', stock_low:'Poco stock', stock_out:'Agotados',
     loading_catalog:'Cargando catálogo...', no_products:'No hay productos o servicios disponibles',
@@ -585,6 +590,7 @@ const I18N = {
     order_name_placeholder:'Tu nombre completo', order_phone_placeholder:'Tu número de celular',
     total_label:'Total a pagar', order_whatsapp_btn:'Pedir por WhatsApp',
     admin_label_client:'Modo cliente', admin_label_admin:'Modo vendedora (Activo)',
+    admin_login_entry:'🔑 Iniciar sesión como administrador/a',
     admin_lock_hint:'Acceso admin 🔒',
     clear_orders_btn:'🧹 Vaciar todos los pedidos (usar solo para limpiar pruebas)',
     no_orders:'No hay pedidos',
@@ -670,7 +676,7 @@ const I18N = {
     tab_catalogo:'Catalog', tab_carrito:'Cart', tab_pedidos:'Orders', tab_chat:'Chat',
     search_placeholder:'Search', filter_all:'All',
     admin_upload_btn:'➕ Upload New Item',
-    admin_share_link_btn:'📋 Share my store link', admin_exit_btn:'🔓 Exit admin mode',
+    admin_share_link_btn:'📋 Share my store link', admin_settings_btn:'⚙️ Store settings', admin_exit_btn:'🔓 Exit admin mode',
     toast_store_created_share_hint:'🎉 Your store is ready! Copy your link below and share it with your customers so they can buy from you.',
     stock_all:'All', stock_available:'Available', stock_low:'Low stock', stock_out:'Out of stock',
     loading_catalog:'Loading catalog...', no_products:'No items available',
@@ -683,6 +689,7 @@ const I18N = {
     order_name_placeholder:'Your full name', order_phone_placeholder:'Your phone number',
     total_label:'Total to pay', order_whatsapp_btn:'Order via WhatsApp',
     admin_label_client:'Customer mode', admin_label_admin:'Seller mode (Active)',
+    admin_login_entry:'🔑 Log in as administrator',
     admin_lock_hint:'Admin access 🔒',
     clear_orders_btn:'🧹 Clear all orders (test data cleanup only)',
     no_orders:'No orders yet',
@@ -768,7 +775,7 @@ const I18N = {
     tab_catalogo:'Catalogue', tab_carrito:'Panier', tab_pedidos:'Commandes', tab_chat:'Chat',
     search_placeholder:'Rechercher', filter_all:'Tout',
     admin_upload_btn:'➕ Ajouter un article',
-    admin_share_link_btn:'📋 Partager le lien de ma boutique', admin_exit_btn:'🔓 Quitter le mode administrateur',
+    admin_share_link_btn:'📋 Partager le lien de ma boutique', admin_settings_btn:'⚙️ Paramètres de ma boutique', admin_exit_btn:'🔓 Quitter le mode administrateur',
     toast_store_created_share_hint:'🎉 Votre boutique est prête ! Copiez votre lien ci-dessous et partagez-le avec vos clients pour permettre vos ventes.',
     stock_all:'Tous', stock_available:'Disponibles', stock_low:'Stock faible', stock_out:'Épuisé',
     loading_catalog:'Chargement du catalogue...', no_products:'Aucun article disponible',
@@ -781,6 +788,7 @@ const I18N = {
     order_name_placeholder:'Votre nom complet', order_phone_placeholder:'Votre numéro de téléphone',
     total_label:'Total à payer', order_whatsapp_btn:'Commander via WhatsApp',
     admin_label_client:'Mode client', admin_label_admin:'Mode vendeuse (Actif)',
+    admin_login_entry:'🔑 Connexion administrateur',
     admin_lock_hint:'Accès admin 🔒',
     clear_orders_btn:'🧹 Vider toutes les commandes (nettoyage des tests uniquement)',
     no_orders:'Aucune commande',
@@ -891,7 +899,6 @@ function setLanguage(lang) {
   currentLang = lang;
   localStorage.setItem('tienda_lang', lang);
   applyStaticTranslations();
-  document.getElementById('adminLabel').textContent = isAdmin ? t('admin_label_admin') : t('admin_label_client');
   renderProducts();
   renderCart();
   if (lastOrdersDocs) renderOrdersList(lastOrdersDocs);
@@ -973,9 +980,9 @@ function startAuth() {
 }
 
 function onAdminStatusReady() {
-  document.getElementById('adminLabel').textContent = isAdmin ? t('admin_label_admin') : t('admin_label_client');
   document.getElementById('headerLogoBtn').classList.toggle('admin', isAdmin);
   document.getElementById('adminControlsArea').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('adminToggleBar').style.display = isAdmin ? 'none' : 'flex';
   document.getElementById('logoutBtn').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('stockFilterBar').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('clearOrdersBtn').style.display = isAdmin ? 'block' : 'none';
