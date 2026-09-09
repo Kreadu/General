@@ -1,7 +1,7 @@
 {
   "name": "Fink Business",
   "short_name": "Fink",
-  "start_url": "indexgeneral.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
