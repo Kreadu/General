@@ -382,7 +382,37 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       </div>
       <button class="btn-full" id="loginSubmitBtn" onclick="loginAdmin()" data-i18n="login_btn">Ingresar</button>
       <button type="button" class="btn-sm" style="width:100%; margin-top:10px; justify-content:center;" id="loginModeToggleBtn" onclick="toggleLoginMode()" data-i18n="create_store_link">¿No tienes tienda? Crea la tuya</button>
+      <button type="button" class="btn-sm" style="width:100%; margin-top:8px; justify-content:center; background:transparent; color:var(--text-secondary); box-shadow:none;" id="forgotPasswordBtn" onclick="openRecoverModal()" data-i18n="forgot_password_link">¿Olvidaste tu contraseña? Recuperar</button>
       <button class="btn-full" style="background:#dc2626; margin-top:10px; display:none;" id="logoutBtn" onclick="logoutAdmin()" data-i18n="logout_btn">Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <div id="recoverModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="recover_modal_title">Recuperar acceso</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+
+      <div id="recoverFormSection">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_modal_intro">Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.</p>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <select id="recoverWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+          <input type="tel" id="recoverWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+        </div>
+        <button class="btn-full" id="recoverSubmitBtn" onclick="recoverPassword()" data-i18n="recover_submit_btn">Recuperar acceso</button>
+      </div>
+
+      <div id="recoverResultSection" style="display:none;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;" data-i18n="recover_username_label">Tu usuario:</p>
+          <p id="recoverUsernameResult" style="font-size:17px; font-weight:700; margin-bottom:12px;"></p>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;" data-i18n="recover_password_label">Contraseña temporal:</p>
+          <p id="recoverPasswordResult" style="font-size:17px; font-weight:700; letter-spacing:0.5px;"></p>
+        </div>
+        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_change_notice">Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".</p>
+        <button class="btn-full" onclick="closeModals(); openLoginModal();" data-i18n="recover_go_login_btn">Ir a iniciar sesión</button>
+      </div>
     </div>
   </div>
 
@@ -688,6 +718,14 @@ const I18N = {
     alert_store_whatsapp_required:'Escribe tu número de WhatsApp (con código de país, sin + ni espacios)',
     create_store_title:'Crea tu tienda', create_store_btn:'Crear mi tienda',
     create_store_link:'¿No tienes tienda? Crea la tuya', back_to_login_link:'Ya tengo una tienda, iniciar sesión',
+    forgot_password_link:'¿Olvidaste tu contraseña? Recuperar',
+    recover_modal_title:'Recuperar acceso', recover_modal_intro:'Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.',
+    recover_submit_btn:'Recuperar acceso', recover_loading:'Buscando...',
+    recover_username_label:'Tu usuario:', recover_password_label:'Contraseña temporal:',
+    recover_change_notice:'Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".',
+    recover_go_login_btn:'Ir a iniciar sesión',
+    alert_recover_number_required:'Escribe el número de WhatsApp de tu tienda',
+    alert_recover_generic_error:'No se pudo procesar la recuperación. Intenta de nuevo. ',
     store_name_placeholder:'Nombre de tu tienda', store_whatsapp_placeholder:'Tu WhatsApp (ej: 573001234567)',
     store_whatsapp_number_placeholder:'Ej: 3001234567 (sin código de país)',
     account_modal_title:'Mi Tienda', store_link_label:'Tu link para compartir:', copy_link_btn:'📋 Copiar',
@@ -789,6 +827,14 @@ const I18N = {
     alert_store_whatsapp_required:'Enter your WhatsApp number (with country code, no + or spaces)',
     create_store_title:'Create your store', create_store_btn:'Create my store',
     create_store_link:'Don\'t have a store? Create yours', back_to_login_link:'I already have a store, log in',
+    forgot_password_link:'Forgot your password? Recover it',
+    recover_modal_title:'Recover access', recover_modal_intro:'Enter the WhatsApp number you used to register your store. If it matches, we\'ll show your username and a temporary password.',
+    recover_submit_btn:'Recover access', recover_loading:'Searching...',
+    recover_username_label:'Your username:', recover_password_label:'Temporary password:',
+    recover_change_notice:'Log in with these details and change your password as soon as possible from "My Store".',
+    recover_go_login_btn:'Go to login',
+    alert_recover_number_required:'Enter your store\'s WhatsApp number',
+    alert_recover_generic_error:'Could not process the recovery request. Please try again. ',
     store_name_placeholder:'Your store name', store_whatsapp_placeholder:'Your WhatsApp (e.g. 573001234567)',
     store_whatsapp_number_placeholder:'e.g. 3001234567 (without country code)',
     account_modal_title:'My Store', store_link_label:'Your shareable link:', copy_link_btn:'📋 Copy',
@@ -890,6 +936,14 @@ const I18N = {
     alert_store_whatsapp_required:'Indiquez votre numéro WhatsApp (avec l\'indicatif, sans + ni espaces)',
     create_store_title:'Créez votre boutique', create_store_btn:'Créer ma boutique',
     create_store_link:'Vous n\'avez pas de boutique ? Créez la vôtre', back_to_login_link:'J\'ai déjà une boutique, me connecter',
+    forgot_password_link:'Mot de passe oublié ? Récupérer',
+    recover_modal_title:'Récupérer l\'accès', recover_modal_intro:'Indiquez le numéro WhatsApp utilisé pour enregistrer votre boutique. S\'il correspond, nous afficherons votre identifiant et un mot de passe temporaire.',
+    recover_submit_btn:'Récupérer l\'accès', recover_loading:'Recherche...',
+    recover_username_label:'Votre identifiant :', recover_password_label:'Mot de passe temporaire :',
+    recover_change_notice:'Connectez-vous avec ces informations et changez votre mot de passe dès que possible depuis "Ma boutique".',
+    recover_go_login_btn:'Aller à la connexion',
+    alert_recover_number_required:'Indiquez le numéro WhatsApp de votre boutique',
+    alert_recover_generic_error:'Impossible de traiter la récupération. Réessayez. ',
     store_name_placeholder:'Nom de votre boutique', store_whatsapp_placeholder:'Votre WhatsApp (ex : 573001234567)',
     store_whatsapp_number_placeholder:'Ex : 3001234567 (sans indicatif)',
     account_modal_title:'Ma Boutique', store_link_label:'Votre lien à partager :', copy_link_btn:'📋 Copier',
@@ -1003,7 +1057,7 @@ const COUNTRY_CODES = [
 const DEFAULT_COUNTRY_CODE = '57';
 
 function populatePhoneCodeSelects() {
-  const selects = [document.getElementById('newStoreWhatsappCode'), document.getElementById('accStoreWhatsappCode')];
+  const selects = [document.getElementById('newStoreWhatsappCode'), document.getElementById('accStoreWhatsappCode'), document.getElementById('recoverWhatsappCode')];
   selects.forEach(sel => {
     if (!sel) return;
     sel.innerHTML = COUNTRY_CODES.map(c => `<option value="${c.code}">${c.flag} +${c.code} ${c.name}</option>`).join('');
@@ -1111,6 +1165,53 @@ function toggleLoginMode() {
   document.getElementById('loginSubmitBtn').textContent = isCreate ? t('create_store_btn') : t('login_btn');
   document.getElementById('loginSubmitBtn').onclick = isCreate ? createStore : loginAdmin;
   document.getElementById('loginModeToggleBtn').textContent = isCreate ? t('back_to_login_link') : t('create_store_link');
+}
+
+function openRecoverModal() {
+  closeModals();
+  document.getElementById('recoverWhatsappNumber').value = '';
+  document.getElementById('recoverWhatsappCode').value = DEFAULT_COUNTRY_CODE;
+  document.getElementById('recoverFormSection').style.display = 'block';
+  document.getElementById('recoverResultSection').style.display = 'none';
+  const btn = document.getElementById('recoverSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = t('recover_submit_btn');
+  document.getElementById('recoverModal').classList.add('active');
+}
+
+function recoverPassword() {
+  const code = document.getElementById('recoverWhatsappCode').value;
+  const number = document.getElementById('recoverWhatsappNumber').value.trim().replace(/\D/g, '');
+  if (!number) { alert(t('alert_recover_number_required')); return; }
+  const whatsapp = code + number;
+
+  const btn = document.getElementById('recoverSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = t('recover_loading');
+
+  const fd = new FormData();
+  fd.append('action', 'recoverPassword');
+  fd.append('whatsapp', whatsapp);
+
+  fetch(UPLOAD_WORKER_URL, { method: 'POST', body: fd })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      btn.disabled = false;
+      btn.textContent = t('recover_submit_btn');
+      if (!ok || !data || data.error) {
+        alert((data && data.error) || t('alert_recover_generic_error'));
+        return;
+      }
+      document.getElementById('recoverUsernameResult').textContent = data.username;
+      document.getElementById('recoverPasswordResult').textContent = data.tempPassword;
+      document.getElementById('recoverFormSection').style.display = 'none';
+      document.getElementById('recoverResultSection').style.display = 'block';
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = t('recover_submit_btn');
+      alert(t('alert_recover_generic_error') + (err.message || ''));
+    });
 }
 
 function openLogoModal() { 
