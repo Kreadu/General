@@ -375,7 +375,10 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       </div>
       <div id="createStoreFields" style="display:none;">
         <input type="text" id="newStoreName" class="form-input" placeholder="Nombre de tu tienda" data-i18n-placeholder="store_name_placeholder">
-        <input type="tel" id="newStoreWhatsapp" class="form-input" placeholder="Tu WhatsApp (ej: 573001234567)" data-i18n-placeholder="store_whatsapp_placeholder">
+        <div style="display:flex; gap:8px;">
+          <select id="newStoreWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+          <input type="tel" id="newStoreWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+        </div>
       </div>
       <button class="btn-full" id="loginSubmitBtn" onclick="loginAdmin()" data-i18n="login_btn">Ingresar</button>
       <button type="button" class="btn-sm" style="width:100%; margin-top:10px; justify-content:center;" id="loginModeToggleBtn" onclick="toggleLoginMode()" data-i18n="create_store_link">¿No tienes tienda? Crea la tuya</button>
@@ -402,7 +405,10 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       <input type="text" id="accStoreName" class="form-input" placeholder="Nombre de tu tienda" data-i18n-placeholder="store_name_placeholder">
 
       <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="store_whatsapp_label">Tu número de WhatsApp:</label>
-      <input type="tel" id="accStoreWhatsapp" class="form-input" placeholder="Ej: 573001234567" data-i18n-placeholder="store_whatsapp_placeholder">
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <select id="accStoreWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+        <input type="tel" id="accStoreWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+      </div>
 
       <button class="btn-full" onclick="saveStoreSettings()" data-i18n="save_store_settings_btn">Guardar cambios de la tienda</button>
 
@@ -683,6 +689,7 @@ const I18N = {
     create_store_title:'Crea tu tienda', create_store_btn:'Crear mi tienda',
     create_store_link:'¿No tienes tienda? Crea la tuya', back_to_login_link:'Ya tengo una tienda, iniciar sesión',
     store_name_placeholder:'Nombre de tu tienda', store_whatsapp_placeholder:'Tu WhatsApp (ej: 573001234567)',
+    store_whatsapp_number_placeholder:'Ej: 3001234567 (sin código de país)',
     account_modal_title:'Mi Tienda', store_link_label:'Tu link para compartir:', copy_link_btn:'📋 Copiar',
     store_name_label:'Nombre de tu tienda:', store_whatsapp_label:'Tu número de WhatsApp:',
     save_store_settings_btn:'Guardar cambios de la tienda',
@@ -783,6 +790,7 @@ const I18N = {
     create_store_title:'Create your store', create_store_btn:'Create my store',
     create_store_link:'Don\'t have a store? Create yours', back_to_login_link:'I already have a store, log in',
     store_name_placeholder:'Your store name', store_whatsapp_placeholder:'Your WhatsApp (e.g. 573001234567)',
+    store_whatsapp_number_placeholder:'e.g. 3001234567 (without country code)',
     account_modal_title:'My Store', store_link_label:'Your shareable link:', copy_link_btn:'📋 Copy',
     store_name_label:'Your store name:', store_whatsapp_label:'Your WhatsApp number:',
     save_store_settings_btn:'Save store changes',
@@ -883,6 +891,7 @@ const I18N = {
     create_store_title:'Créez votre boutique', create_store_btn:'Créer ma boutique',
     create_store_link:'Vous n\'avez pas de boutique ? Créez la vôtre', back_to_login_link:'J\'ai déjà une boutique, me connecter',
     store_name_placeholder:'Nom de votre boutique', store_whatsapp_placeholder:'Votre WhatsApp (ex : 573001234567)',
+    store_whatsapp_number_placeholder:'Ex : 3001234567 (sans indicatif)',
     account_modal_title:'Ma Boutique', store_link_label:'Votre lien à partager :', copy_link_btn:'📋 Copier',
     store_name_label:'Nom de votre boutique :', store_whatsapp_label:'Votre numéro WhatsApp :',
     save_store_settings_btn:'Enregistrer les modifications',
@@ -922,6 +931,7 @@ function setLanguage(lang) {
   currentLang = lang;
   localStorage.setItem('tienda_lang', lang);
   applyStaticTranslations();
+  renderCategories();
   renderProducts();
   renderCart();
   if (lastOrdersDocs) renderOrdersList(lastOrdersDocs);
@@ -962,7 +972,57 @@ let isAdmin = false;
 let currentCategory = 'all';
 let currentSearch = '';
 
+// Códigos de país para el selector de WhatsApp (ordenados: LatAm primero, luego el resto)
+const COUNTRY_CODES = [
+  { code: '57', flag: '🇨🇴', name: 'Colombia' },
+  { code: '52', flag: '🇲🇽', name: 'México' },
+  { code: '54', flag: '🇦🇷', name: 'Argentina' },
+  { code: '56', flag: '🇨🇱', name: 'Chile' },
+  { code: '51', flag: '🇵🇪', name: 'Perú' },
+  { code: '593', flag: '🇪🇨', name: 'Ecuador' },
+  { code: '58', flag: '🇻🇪', name: 'Venezuela' },
+  { code: '591', flag: '🇧🇴', name: 'Bolivia' },
+  { code: '595', flag: '🇵🇾', name: 'Paraguay' },
+  { code: '598', flag: '🇺🇾', name: 'Uruguay' },
+  { code: '506', flag: '🇨🇷', name: 'Costa Rica' },
+  { code: '507', flag: '🇵🇦', name: 'Panamá' },
+  { code: '502', flag: '🇬🇹', name: 'Guatemala' },
+  { code: '503', flag: '🇸🇻', name: 'El Salvador' },
+  { code: '504', flag: '🇭🇳', name: 'Honduras' },
+  { code: '505', flag: '🇳🇮', name: 'Nicaragua' },
+  { code: '1', flag: '🇩🇴', name: 'Rep. Dominicana' },
+  { code: '53', flag: '🇨🇺', name: 'Cuba' },
+  { code: '1', flag: '🇵🇷', name: 'Puerto Rico' },
+  { code: '34', flag: '🇪🇸', name: 'España' },
+  { code: '1', flag: '🇺🇸', name: 'Estados Unidos' },
+  { code: '1', flag: '🇨🇦', name: 'Canadá' },
+  { code: '55', flag: '🇧🇷', name: 'Brasil' },
+  { code: '44', flag: '🇬🇧', name: 'Reino Unido' },
+  { code: '33', flag: '🇫🇷', name: 'Francia' },
+];
+const DEFAULT_COUNTRY_CODE = '57';
+
+function populatePhoneCodeSelects() {
+  const selects = [document.getElementById('newStoreWhatsappCode'), document.getElementById('accStoreWhatsappCode')];
+  selects.forEach(sel => {
+    if (!sel) return;
+    sel.innerHTML = COUNTRY_CODES.map(c => `<option value="${c.code}">${c.flag} +${c.code} ${c.name}</option>`).join('');
+    sel.value = DEFAULT_COUNTRY_CODE;
+  });
+}
+
+// Separa un número guardado (ej: "573001234567") en { code, number } usando la lista de códigos conocidos.
+function splitWhatsappNumber(full) {
+  const digits = (full || '').replace(/\D/g, '');
+  if (!digits) return { code: DEFAULT_COUNTRY_CODE, number: '' };
+  const sortedCodes = [...new Set(COUNTRY_CODES.map(c => c.code))].sort((a, b) => b.length - a.length);
+  const match = sortedCodes.find(code => digits.startsWith(code) && digits.length > code.length);
+  if (match) return { code: match, number: digits.slice(match.length) };
+  return { code: DEFAULT_COUNTRY_CODE, number: digits };
+}
+
 function initApp() {
+  populatePhoneCodeSelects();
   if(!storeId) { showLanding(false); return; }
   storeRef().get().then(doc => {
     if(!doc.exists) { showLanding(true); return; }
@@ -1106,7 +1166,9 @@ function createStore() {
   const username = document.getElementById('adminEmail').value.trim();
   const pass = document.getElementById('adminPass').value;
   const newName = document.getElementById('newStoreName').value.trim();
-  const newWhatsapp = document.getElementById('newStoreWhatsapp').value.trim();
+  const newWhatsappCode = document.getElementById('newStoreWhatsappCode').value;
+  const newWhatsappNumber = document.getElementById('newStoreWhatsappNumber').value.trim().replace(/\D/g, '');
+  const newWhatsapp = newWhatsappNumber ? newWhatsappCode + newWhatsappNumber : '';
   if(!isValidUsername(username)) return alert(t('alert_username_format'));
   if(!pass || pass.length < 6) return alert(t('alert_password_short'));
   if(!newName) return alert(t('alert_store_name_required'));
@@ -1140,7 +1202,9 @@ function openAccountModal() {
   storeRef().get().then(doc => {
     const d = doc.exists ? doc.data() : {};
     document.getElementById('accStoreName').value = d.name || '';
-    document.getElementById('accStoreWhatsapp').value = d.whatsapp || '';
+    const parsed = splitWhatsappNumber(d.whatsapp || '');
+    document.getElementById('accStoreWhatsappCode').value = parsed.code;
+    document.getElementById('accStoreWhatsappNumber').value = parsed.number;
     const used = d.photosUploaded || 0;
     document.getElementById('photoUsageInfo').textContent = `${t('photo_usage_label')}: ${used} / ${MAX_STORE_PHOTOS}`;
   }).catch(() => {});
@@ -1152,7 +1216,9 @@ function openAccountModal() {
 function saveStoreSettings() {
   if(!isAdmin) return alert(t('alert_not_authorized'));
   const name = document.getElementById('accStoreName').value.trim();
-  const whatsapp = document.getElementById('accStoreWhatsapp').value.trim();
+  const accWhatsappCode = document.getElementById('accStoreWhatsappCode').value;
+  const accWhatsappNumber = document.getElementById('accStoreWhatsappNumber').value.trim().replace(/\D/g, '');
+  const whatsapp = accWhatsappNumber ? accWhatsappCode + accWhatsappNumber : '';
   if(!name) return alert(t('alert_store_name_required'));
   if(!whatsapp) return alert(t('alert_store_whatsapp_required'));
   storeRef().set({ name, whatsapp }, { merge: true }).then(() => {
@@ -1271,7 +1337,7 @@ function loadCategories() {
 
 function renderCategories() {
   const container = document.getElementById('categoryFilters');
-  let html = `<button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-filter="all" onclick="setCategory('all')">Todo</button>`;
+  let html = `<button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-filter="all" onclick="setCategory('all')">${t('filter_all')}</button>`;
 
   if(isAdmin) {
     html += `<button class="filter-chip-add" onclick="openCategoryModal()" title="${t('add_category_tooltip')}">+</button>`;
