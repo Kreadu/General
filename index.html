@@ -381,8 +381,7 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
         </div>
       </div>
       <button class="btn-full" id="loginSubmitBtn" onclick="loginAdmin()" data-i18n="login_btn">Ingresar</button>
-      <button type="button" class="btn-sm" style="width:100%; margin-top:10px; justify-content:center;" id="loginModeToggleBtn" onclick="toggleLoginMode()" data-i18n="create_store_link">¿No tienes tienda? Crea la tuya</button>
-      <button type="button" class="btn-sm" style="width:100%; margin-top:8px; justify-content:center; background:transparent; color:var(--text-secondary); box-shadow:none;" id="forgotPasswordBtn" onclick="openRecoverModal()" data-i18n="forgot_password_link">¿Olvidaste tu contraseña? Recuperar</button>
+      <button type="button" class="btn-sm" style="width:100%; margin-top:12px; justify-content:center; padding:11px 8px; font-size:14px; font-weight:600; background:var(--surface-muted);" id="forgotPasswordBtn" onclick="openRecoverModal()" data-i18n="forgot_password_link">¿Olvidaste tu contraseña? Recuperar</button>
       <button class="btn-full" style="background:#dc2626; margin-top:10px; display:none;" id="logoutBtn" onclick="logoutAdmin()" data-i18n="logout_btn">Cerrar Sesión</button>
     </div>
   </div>
@@ -1150,7 +1149,6 @@ function openLoginModal() {
   document.getElementById('loginModalTitle').textContent = t('login_title');
   document.getElementById('loginSubmitBtn').textContent = t('login_btn');
   document.getElementById('loginSubmitBtn').onclick = loginAdmin;
-  document.getElementById('loginModeToggleBtn').textContent = t('create_store_link');
   document.getElementById('loginModal').classList.add('active');
 }
 function openCreateStoreModal() {
@@ -1164,7 +1162,6 @@ function toggleLoginMode() {
   document.getElementById('loginModalTitle').textContent = isCreate ? t('create_store_title') : t('login_title');
   document.getElementById('loginSubmitBtn').textContent = isCreate ? t('create_store_btn') : t('login_btn');
   document.getElementById('loginSubmitBtn').onclick = isCreate ? createStore : loginAdmin;
-  document.getElementById('loginModeToggleBtn').textContent = isCreate ? t('back_to_login_link') : t('create_store_link');
 }
 
 function openRecoverModal() {
