@@ -379,6 +379,8 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
           <select id="newStoreWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
           <input type="tel" id="newStoreWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
         </div>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="newStorePin" class="form-input" maxlength="6" placeholder="PIN de recuperación (4 a 6 dígitos)" data-i18n-placeholder="recovery_pin_placeholder">
+        <p style="font-size:11px; color:var(--text-secondary); margin:-8px 0 12px;" data-i18n="recovery_pin_hint">Guárdalo bien: lo necesitarás junto a tu WhatsApp para recuperar tu cuenta si olvidas tu contraseña.</p>
       </div>
       <button class="btn-full" id="loginSubmitBtn" onclick="loginAdmin()" data-i18n="login_btn">Ingresar</button>
       <button type="button" class="btn-sm" style="width:100%; margin-top:12px; justify-content:center; padding:11px 8px; font-size:14px; font-weight:600; background:var(--surface-muted);" id="forgotPasswordBtn" onclick="openRecoverModal()" data-i18n="forgot_password_link">¿Olvidaste tu contraseña? Recuperar</button>
@@ -394,11 +396,12 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       </div>
 
       <div id="recoverFormSection">
-        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_modal_intro">Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.</p>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_modal_intro">Escribe el número de WhatsApp con el que registraste tu tienda y tu PIN de recuperación. Si coinciden, te mostraremos tu usuario y una contraseña temporal.</p>
         <div style="display:flex; gap:8px; margin-bottom:14px;">
           <select id="recoverWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
           <input type="tel" id="recoverWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
         </div>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="recoverPin" class="form-input" maxlength="6" style="margin-bottom:14px;" placeholder="PIN (4 a 6 dígitos)" data-i18n-placeholder="recovery_pin_placeholder">
         <button class="btn-full" id="recoverSubmitBtn" onclick="recoverPassword()" data-i18n="recover_submit_btn">Recuperar acceso</button>
       </div>
 
@@ -412,6 +415,17 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
         <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_change_notice">Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".</p>
         <button class="btn-full" onclick="closeModals(); openLoginModal();" data-i18n="recover_go_login_btn">Ir a iniciar sesión</button>
       </div>
+    </div>
+  </div>
+
+  <div id="setPinModal" class="modal-overlay modal-locked">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="set_pin_modal_title">Configura tu PIN de recuperación</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="set_pin_modal_intro">Elige un PIN de 4 a 6 dígitos. Lo vas a necesitar junto a tu WhatsApp si alguna vez olvidas tu contraseña. Nadie más lo verá.</p>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="newPinInput" class="form-input" maxlength="6" placeholder="PIN (4 a 6 dígitos)" data-i18n-placeholder="recovery_pin_placeholder">
+      <button class="btn-full" onclick="saveRecoveryPin()" data-i18n="save_pin_btn">Guardar PIN</button>
     </div>
   </div>
 
@@ -447,6 +461,12 @@ body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--
       <input type="password" id="accCurrentPass" class="form-input" placeholder="Contraseña actual" data-i18n-placeholder="current_password_placeholder">
       <input type="password" id="accNewPass" class="form-input" placeholder="Contraseña nueva (mínimo 6 caracteres)" data-i18n-placeholder="new_password_placeholder">
       <button class="btn-full" style="background:var(--text-secondary);" onclick="changeAdminPassword()" data-i18n="change_password_btn">Actualizar contraseña</button>
+
+      <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="change_pin_label">Cambiar PIN de recuperación:</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="accNewPin" class="form-input" maxlength="6" placeholder="PIN nuevo (4 a 6 dígitos)" data-i18n-placeholder="recovery_pin_placeholder">
+      <button class="btn-full" style="background:var(--text-secondary);" onclick="updateRecoveryPin()" data-i18n="update_pin_btn">Actualizar PIN</button>
 
       <button class="btn-full" style="background:#dc2626; margin-top:14px;" onclick="logoutAdmin()" data-i18n="logout_btn">Cerrar Sesión</button>
     </div>
@@ -718,13 +738,20 @@ const I18N = {
     create_store_title:'Crea tu tienda', create_store_btn:'Crear mi tienda',
     create_store_link:'¿No tienes tienda? Crea la tuya', back_to_login_link:'Ya tengo una tienda, iniciar sesión',
     forgot_password_link:'¿Olvidaste tu contraseña? Recuperar',
-    recover_modal_title:'Recuperar acceso', recover_modal_intro:'Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.',
+    recover_modal_title:'Recuperar acceso', recover_modal_intro:'Escribe el número de WhatsApp con el que registraste tu tienda y tu PIN de recuperación. Si coinciden, te mostraremos tu usuario y una contraseña temporal.',
     recover_submit_btn:'Recuperar acceso', recover_loading:'Buscando...',
     recover_username_label:'Tu usuario:', recover_password_label:'Contraseña temporal:',
     recover_change_notice:'Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".',
     recover_go_login_btn:'Ir a iniciar sesión',
     alert_recover_number_required:'Escribe el número de WhatsApp de tu tienda',
     alert_recover_generic_error:'No se pudo procesar la recuperación. Intenta de nuevo. ',
+    recovery_pin_placeholder:'PIN (4 a 6 dígitos)',
+    recovery_pin_hint:'Guárdalo bien: lo necesitarás junto a tu WhatsApp para recuperar tu cuenta si olvidas tu contraseña.',
+    alert_pin_format:'El PIN debe tener entre 4 y 6 dígitos.',
+    set_pin_modal_title:'Configura tu PIN de recuperación',
+    set_pin_modal_intro:'Elige un PIN de 4 a 6 dígitos. Lo vas a necesitar junto a tu WhatsApp si alguna vez olvidas tu contraseña. Nadie más lo verá.',
+    save_pin_btn:'Guardar PIN', toast_pin_saved:'¡PIN guardado con éxito!',
+    change_pin_label:'Cambiar PIN de recuperación:', update_pin_btn:'Actualizar PIN',
     store_name_placeholder:'Nombre de tu tienda', store_whatsapp_placeholder:'Tu WhatsApp (ej: 573001234567)',
     store_whatsapp_number_placeholder:'Ej: 3001234567 (sin código de país)',
     account_modal_title:'Mi Tienda', store_link_label:'Tu link para compartir:', copy_link_btn:'📋 Copiar',
@@ -827,13 +854,20 @@ const I18N = {
     create_store_title:'Create your store', create_store_btn:'Create my store',
     create_store_link:'Don\'t have a store? Create yours', back_to_login_link:'I already have a store, log in',
     forgot_password_link:'Forgot your password? Recover it',
-    recover_modal_title:'Recover access', recover_modal_intro:'Enter the WhatsApp number you used to register your store. If it matches, we\'ll show your username and a temporary password.',
+    recover_modal_title:'Recover access', recover_modal_intro:'Enter the WhatsApp number you used to register your store and your recovery PIN. If they match, we\'ll show your username and a temporary password.',
     recover_submit_btn:'Recover access', recover_loading:'Searching...',
     recover_username_label:'Your username:', recover_password_label:'Temporary password:',
     recover_change_notice:'Log in with these details and change your password as soon as possible from "My Store".',
     recover_go_login_btn:'Go to login',
     alert_recover_number_required:'Enter your store\'s WhatsApp number',
     alert_recover_generic_error:'Could not process the recovery request. Please try again. ',
+    recovery_pin_placeholder:'PIN (4 to 6 digits)',
+    recovery_pin_hint:'Keep it safe: you\'ll need it together with your WhatsApp number to recover your account if you forget your password.',
+    alert_pin_format:'The PIN must be 4 to 6 digits long.',
+    set_pin_modal_title:'Set up your recovery PIN',
+    set_pin_modal_intro:'Choose a 4 to 6 digit PIN. You\'ll need it along with your WhatsApp number if you ever forget your password. No one else will see it.',
+    save_pin_btn:'Save PIN', toast_pin_saved:'PIN saved successfully!',
+    change_pin_label:'Change recovery PIN:', update_pin_btn:'Update PIN',
     store_name_placeholder:'Your store name', store_whatsapp_placeholder:'Your WhatsApp (e.g. 573001234567)',
     store_whatsapp_number_placeholder:'e.g. 3001234567 (without country code)',
     account_modal_title:'My Store', store_link_label:'Your shareable link:', copy_link_btn:'📋 Copy',
@@ -936,13 +970,20 @@ const I18N = {
     create_store_title:'Créez votre boutique', create_store_btn:'Créer ma boutique',
     create_store_link:'Vous n\'avez pas de boutique ? Créez la vôtre', back_to_login_link:'J\'ai déjà une boutique, me connecter',
     forgot_password_link:'Mot de passe oublié ? Récupérer',
-    recover_modal_title:'Récupérer l\'accès', recover_modal_intro:'Indiquez le numéro WhatsApp utilisé pour enregistrer votre boutique. S\'il correspond, nous afficherons votre identifiant et un mot de passe temporaire.',
+    recover_modal_title:'Récupérer l\'accès', recover_modal_intro:'Indiquez le numéro WhatsApp utilisé pour enregistrer votre boutique et votre PIN de récupération. S\'ils correspondent, nous afficherons votre identifiant et un mot de passe temporaire.',
     recover_submit_btn:'Récupérer l\'accès', recover_loading:'Recherche...',
     recover_username_label:'Votre identifiant :', recover_password_label:'Mot de passe temporaire :',
     recover_change_notice:'Connectez-vous avec ces informations et changez votre mot de passe dès que possible depuis "Ma boutique".',
     recover_go_login_btn:'Aller à la connexion',
     alert_recover_number_required:'Indiquez le numéro WhatsApp de votre boutique',
     alert_recover_generic_error:'Impossible de traiter la récupération. Réessayez. ',
+    recovery_pin_placeholder:'PIN (4 à 6 chiffres)',
+    recovery_pin_hint:'Conservez-le bien : vous en aurez besoin avec votre WhatsApp pour récupérer votre compte si vous oubliez votre mot de passe.',
+    alert_pin_format:'Le PIN doit comporter entre 4 et 6 chiffres.',
+    set_pin_modal_title:'Configurez votre PIN de récupération',
+    set_pin_modal_intro:'Choisissez un PIN de 4 à 6 chiffres. Vous en aurez besoin avec votre WhatsApp si vous oubliez un jour votre mot de passe. Personne d\'autre ne le verra.',
+    save_pin_btn:'Enregistrer le PIN', toast_pin_saved:'PIN enregistré avec succès !',
+    change_pin_label:'Changer le PIN de récupération :', update_pin_btn:'Mettre à jour le PIN',
     store_name_placeholder:'Nom de votre boutique', store_whatsapp_placeholder:'Votre WhatsApp (ex : 573001234567)',
     store_whatsapp_number_placeholder:'Ex : 3001234567 (sans indicatif)',
     account_modal_title:'Ma Boutique', store_link_label:'Votre lien à partager :', copy_link_btn:'📋 Copier',
@@ -1129,6 +1170,15 @@ function onAdminStatusReady() {
   loadProducts();
   loadOrders();
 
+  if(isAdmin) {
+    db.collection('admins').doc(auth.currentUser.uid).get().then(doc => {
+      if(doc.exists && !doc.data().pinHash) {
+        document.getElementById('newPinInput').value = '';
+        document.getElementById('setPinModal').classList.add('active');
+      }
+    }).catch(() => {});
+  }
+
   if(isAdmin && sessionStorage.getItem('justCreatedStore') === '1') {
     sessionStorage.removeItem('justCreatedStore');
     setTimeout(() => {
@@ -1168,6 +1218,7 @@ function openRecoverModal() {
   closeModals();
   document.getElementById('recoverWhatsappNumber').value = '';
   document.getElementById('recoverWhatsappCode').value = DEFAULT_COUNTRY_CODE;
+  document.getElementById('recoverPin').value = '';
   document.getElementById('recoverFormSection').style.display = 'block';
   document.getElementById('recoverResultSection').style.display = 'none';
   const btn = document.getElementById('recoverSubmitBtn');
@@ -1179,7 +1230,9 @@ function openRecoverModal() {
 function recoverPassword() {
   const code = document.getElementById('recoverWhatsappCode').value;
   const number = document.getElementById('recoverWhatsappNumber').value.trim().replace(/\D/g, '');
+  const pin = document.getElementById('recoverPin').value.trim();
   if (!number) { alert(t('alert_recover_number_required')); return; }
+  if (!isValidPin(pin)) { alert(t('alert_pin_format')); return; }
   const whatsapp = code + number;
 
   const btn = document.getElementById('recoverSubmitBtn');
@@ -1189,6 +1242,7 @@ function recoverPassword() {
   const fd = new FormData();
   fd.append('action', 'recoverPassword');
   fd.append('whatsapp', whatsapp);
+  fd.append('pin', pin);
 
   fetch(UPLOAD_WORKER_URL, { method: 'POST', body: fd })
     .then(res => res.json().then(data => ({ ok: res.ok, data })))
@@ -1215,9 +1269,9 @@ function openLogoModal() {
   document.getElementById('newLogoImg').value = '';
   document.getElementById('logoModal').classList.add('active'); 
 }
-function closeModals(e) { 
+function closeModals(e) {
   if(!e || e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close')) {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); 
+    document.querySelectorAll('.modal-overlay').forEach(m => { if(!m.classList.contains('modal-locked')) m.classList.remove('active'); });
   }
 }
 
@@ -1235,6 +1289,16 @@ function usernameToEmail(username) {
 }
 function isValidUsername(username) {
   return /^[a-zA-Z0-9]{8}$/.test(username);
+}
+function isValidPin(pin) {
+  return /^[0-9]{4,6}$/.test(pin);
+}
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function hashPin(pin, uid) {
+  return sha256Hex(`${pin}:${uid}`);
 }
 
 function loginAdmin() {
@@ -1267,17 +1331,20 @@ function createStore() {
   const newWhatsappCode = document.getElementById('newStoreWhatsappCode').value;
   const newWhatsappNumber = document.getElementById('newStoreWhatsappNumber').value.trim().replace(/\D/g, '');
   const newWhatsapp = newWhatsappNumber ? newWhatsappCode + newWhatsappNumber : '';
+  const newPin = document.getElementById('newStorePin').value.trim();
   if(!isValidUsername(username)) return alert(t('alert_username_format'));
   if(!pass || pass.length < 6) return alert(t('alert_password_short'));
   if(!newName) return alert(t('alert_store_name_required'));
   if(!newWhatsapp) return alert(t('alert_store_whatsapp_required'));
+  if(!isValidPin(newPin)) return alert(t('alert_pin_format'));
 
   auth.createUserWithEmailAndPassword(usernameToEmail(username), pass).then(cred => {
     const newStoreRef = db.collection('stores').doc();
     return newStoreRef.set({
       name: newName, whatsapp: newWhatsapp, logoUrl: '', ownerUid: cred.user.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => db.collection('admins').doc(cred.user.uid).set({ storeId: newStoreRef.id, username }))
+    }).then(() => hashPin(newPin, cred.user.uid))
+      .then(pinHash => db.collection('admins').doc(cred.user.uid).set({ storeId: newStoreRef.id, username, pinHash }))
       .then(() => newStoreRef.id);
   }).then(newStoreId => {
     closeModals();
@@ -1337,6 +1404,27 @@ function changeAdminPassword() {
     document.getElementById('accCurrentPass').value = '';
     document.getElementById('accNewPass').value = '';
     showToast(t('toast_password_changed'));
+  }).catch(e => alert(t('alert_login_error') + e.message));
+}
+
+function saveRecoveryPin() {
+  const pin = document.getElementById('newPinInput').value.trim();
+  if(!isValidPin(pin)) return alert(t('alert_pin_format'));
+  const user = auth.currentUser;
+  hashPin(pin, user.uid).then(pinHash => db.collection('admins').doc(user.uid).update({ pinHash })).then(() => {
+    document.getElementById('setPinModal').classList.remove('active');
+    showToast(t('toast_pin_saved'));
+  }).catch(e => alert(t('alert_login_error') + e.message));
+}
+
+function updateRecoveryPin() {
+  if(!isAdmin) return alert(t('alert_not_authorized'));
+  const pin = document.getElementById('accNewPin').value.trim();
+  if(!isValidPin(pin)) return alert(t('alert_pin_format'));
+  const user = auth.currentUser;
+  hashPin(pin, user.uid).then(pinHash => db.collection('admins').doc(user.uid).update({ pinHash })).then(() => {
+    document.getElementById('accNewPin').value = '';
+    showToast(t('toast_pin_saved'));
   }).catch(e => alert(t('alert_login_error') + e.message));
 }
 
