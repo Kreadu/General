@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fink Business</title>
+
+<!-- Iconos de la app -->
+<link rel="icon" type="image/png" href="logoapp.png">
+<link rel="apple-touch-icon" href="logoapp.png">
+
+<!-- Etiquetas para fijar el nombre en celulares -->
+<meta name="apple-mobile-web-app-title" content="Fink Business">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+:root{
+  --bg:#FDF8F3;--surface:#FFFFFF;--surface-muted:#F5EDE4;--surface-raised:#FFFFFF;
+  --text-primary:#2C1810;--text-secondary:#6B5B4F;--text-tertiary:#A89484;--text-quaternary:#D4C4B0;
+  --border:#E8DDD0;--accent:#C4785A;--positive:#16a34a;--warning:#f59e0b;--danger:#dc2626;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:12px;--radius-full:999px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.04);--shadow-md:0 4px 12px rgba(0,0,0,0.08);
+  --transition:0.15s ease-out;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg) !important; color:var(--text-primary); }
+#app { max-width:480px; margin:0 auto; height:100vh; height:100dvh; display:flex; flex-direction:column; position:relative; }
+
+/* ===== APP HEADER (LOGO) ===== */
+.app-header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; position:sticky; top:0; z-index:60; }
+.header-logo-btn { width:42px; height:42px; border-radius:50%; border:1px solid var(--border); background:var(--surface-muted); display:flex; align-items:center; justify-content:center; cursor:default; position:relative; padding:0; flex-shrink:0; transition:transform var(--transition); }
+.header-logo-btn img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+.header-logo-btn svg { width:22px; height:22px; color:var(--text-tertiary); }
+.header-logo-btn.admin { cursor:pointer; border-color:var(--text-quaternary); }
+.header-logo-btn.admin:hover { transform:scale(1.05); }
+.header-logo-btn.admin::after { content:'✎'; position:absolute; bottom:-2px; right:-2px; width:16px; height:16px; background:var(--text-primary); color:var(--surface); border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-sm); }
+.header-title { font-size:15px; font-weight:600; }
+.lang-btn { border:1px solid var(--border); background:var(--surface); border-radius:var(--radius-sm); width:30px; height:30px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; opacity:0.5; transition:all var(--transition); }
+.lang-btn.active { opacity:1; border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent); }
+
+/* ===== TAB BAR ===== */
+.tab-bar { display:flex; gap:2px; padding:6px 8px 8px; border-bottom:1px solid var(--border); background:var(--surface); position:sticky; top:0; z-index:50; flex-shrink:0; }
+.tab-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border:none; background:transparent; border-radius:var(--radius-md); cursor:pointer; color:var(--text-tertiary); font-size:11px; font-weight:500; transition:all var(--transition); position:relative; }
+.tab-btn.active { color:var(--text-primary); background:var(--surface-muted); }
+.tab-btn svg { width:22px; height:22px; stroke-width:1.8; }
+.badge { position:absolute; top:2px; right:6px; min-width:16px; height:16px; background:var(--text-primary); color:var(--surface); border-radius:var(--radius-full); font-size:10px; display:flex; align-items:center; justify-content:center; font-weight:600; padding:0 4px; }
+
+/* ===== VIEWS ===== */
+.views { flex:1; overflow-y:auto; overflow-x:hidden; position:relative; scroll-behavior:smooth; }
+.view { display:none; padding:12px; min-height:100%; animation:fadeIn 0.2s ease-out; }
+.view.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+
+/* ===== SEARCH & FILTERS ===== */
+.search-box { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:12px; background:var(--surface-muted); }
+.search-box svg { color:var(--text-quaternary); flex-shrink:0; }
+.search-box input { border:none; background:transparent; outline:none; width:100%; font-size:14px; color:var(--text-primary); font-family:inherit; }
+.filters {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  padding:0 4px 8px;
+  margin-bottom:14px;
+}
+.filters::-webkit-scrollbar { display:none; }
+.filter-chip { padding:7px 16px; border:1px solid var(--border); border-radius:var(--radius-full); background:var(--surface); font-size:13px; cursor:pointer; white-space:nowrap; color:var(--text-secondary); font-weight:500; transition:all var(--transition); }
+.filter-chip.active { background:var(--text-primary); color:var(--surface); border-color:var(--text-primary); }
+.filter-chip-add { width:32px; height:32px; flex-shrink:0; border:1px dashed var(--text-quaternary); border-radius:var(--radius-full); background:var(--surface); font-size:16px; font-weight:600; cursor:pointer; color:var(--text-secondary); display:flex; align-items:center; justify-content:center; transition:all var(--transition); }
+.filter-chip-add:hover { background:var(--surface-muted); border-color:var(--accent); color:var(--accent); }
+.chip-wrap { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+.chip-delete-btn { width:20px; height:20px; border:none; border-radius:50%; background:var(--surface-muted); color:var(--danger); font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+/* ===== PRODUCT GRID ===== */
+.product-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.product-card { border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; background:var(--surface); cursor:pointer; transition:transform var(--transition), box-shadow var(--transition); box-shadow:var(--shadow-sm); display:flex; flex-direction:column; position:relative; }
+.product-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+.product-img { height:170px; display:flex; align-items:center; justify-content:center; font-size:56px; position:relative; background:var(--surface-muted); }
+.product-img img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; transition:transform 0.2s ease-out; }
+@media (hover:hover) {
+  .product-img img:hover { transform:scale(1.06); }
+}
+
+/* ===== IMAGE LIGHTBOX ===== */
+#imageLightbox { align-items:center; justify-content:center; padding:24px; cursor:zoom-out; }
+#imageLightbox img { max-width:100%; max-height:85vh; border-radius:var(--radius-md); box-shadow:var(--shadow-md); }
+.product-info { padding:12px; flex:1; display:flex; flex-direction:column; }
+.product-name { font-size:14px; font-weight:600; margin-bottom:4px; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.product-details-text { font-size:11px; color:var(--text-secondary); margin-bottom:4px; }
+.product-price { font-size:17px; font-weight:700; margin-top:auto; }
+.product-actions { display:flex; gap:6px; margin-top:10px; }
+.btn-sm { flex:1; padding:7px 8px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); font-size:12px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; color:var(--text-secondary); transition:all var(--transition); }
+.btn-sm:hover { background:var(--surface-muted); }
+.out-of-stock-overlay {
+  position:absolute;
+  inset:0;
+  background:rgba(255,255,255,0.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color:var(--danger);
+  font-size:14px;
+  text-align:center;
+  padding:10px;
+  z-index:2;
+  pointer-events:none;
+}
+.product-card .product-info { position:relative; z-index:3; }
+.product-card .product-actions,
+.product-card .product-actions > *,
+.product-card .product-info > div[style] { position:relative; z-index:4; }
+.stock-warning-badge { background:#fef3c7; color:#d97706; font-size:10px; padding:2px 6px; border-radius:var(--radius-full); font-weight:600; display:inline-block; margin-bottom:4px; }
+
+/* ===== CART ===== */
+.cart-item { display:flex; gap:14px; padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:10px; background:var(--surface); box-shadow:var(--shadow-sm); }
+.cart-img { width:76px; height:76px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0; background:var(--surface-muted); overflow:hidden; }
+.cart-img img { width:100%; height:100%; object-fit:cover; }
+.cart-details { flex:1; min-width:0; }
+.cart-name { font-size:14px; font-weight:600; margin-bottom:2px; }
+.cart-price { font-size:15px; font-weight:700; }
+.qty-controls { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.qty-btn { width:30px; height:30px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; line-height:1; color:var(--text-primary); }
+.qty-btn:active { background:var(--surface-muted); }
+.qty-val { font-size:14px; font-weight:600; min-width:20px; text-align:center; }
+.cart-remove { margin-left:auto; background:transparent; border:none; cursor:pointer; font-size:16px; }
+.empty-state { text-align:center; padding:50px 24px; color:var(--text-quaternary); }
+.empty-state p { font-size:15px; font-weight:500; color:var(--text-secondary); }
+.total-bar { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-top:1px solid var(--border); margin-top:12px; }
+.total-value { font-size:22px; font-weight:700; }
+.whatsapp-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:14px; border:none; border-radius:var(--radius-md); background:var(--positive); color:#fff; font-size:15px; font-weight:600; cursor:pointer; margin-top:16px; box-shadow:0 2px 8px rgba(22,163,74,0.25); }
+
+/* ===== ORDERS & ADMIN ===== */
+.admin-toggle { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--surface); border-radius:var(--radius-md); margin-bottom:14px; font-size:13.5px; cursor:pointer; border:1.5px solid var(--accent); font-weight:600; color:var(--accent); transition:all var(--transition); }
+.admin-toggle:active { background:var(--surface-muted); }
+.admin-toggle svg { color:var(--accent); flex-shrink:0; }
+.order-card { padding:14px; border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:10px; background:var(--surface); box-shadow:var(--shadow-sm); }
+.order-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.order-status { padding:3px 10px; border-radius:var(--radius-full); font-size:11px; font-weight:600; }
+.status-Pendiente { background:#fef3c7; color:#d97706; }
+.status-Enviado { background:#dbeafe; color:#2563eb; }
+.status-Entregado { background:#dcfce3; color:#16a34a; }
+.order-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+
+/* ===== CHAT ===== */
+.whatsapp-chat-card { padding:6px 4px; }
+.whatsapp-chat-intro { font-size:13.5px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px; }
+
+/* ===== PASSWORD TOGGLE ===== */
+.password-wrap { position:relative; margin-bottom:12px; }
+.password-wrap .form-input { margin-bottom:0; padding-right:44px; }
+.password-toggle { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:32px; height:32px; border:none; background:transparent; cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center; color:var(--text-tertiary); border-radius:var(--radius-sm); }
+.password-toggle:hover { background:var(--surface-muted); }
+
+/* ===== MODAL & FORMS ===== */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:flex-end; justify-content:center; z-index:100; }
+.modal-overlay.active { display:flex; }
+.modal { background:var(--surface); border-radius:var(--radius-lg) var(--radius-lg) 0 0; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; padding:20px; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; position:sticky; top:0; background:var(--surface); z-index:5; padding-bottom:10px;}
+.modal-close { width:36px; height:36px; border:none; border-radius:var(--radius-md); background:var(--surface-muted); cursor:pointer; }
+.form-input { width:100%; padding:12px; border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:12px; font-size:14px; background:var(--surface-muted); outline:none; }
+.btn-full { width:100%; padding:14px; border:none; border-radius:var(--radius-md); background:var(--text-primary); color:var(--surface); font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--text-primary); color:var(--surface); padding:10px 20px; border-radius:var(--radius-md); font-size:13px; opacity:0; pointer-events:none; transition:opacity 0.3s; z-index:200; }
+.toast.show { opacity:1; }
+
+/* ===== FOOTER COMPACTO ===== */
+.app-footer {
+  margin-top: auto;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+.app-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.app-footer a:hover {
+  text-decoration: underline;
+}
+
+.stock-quick-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+.stock-quick-controls button{
+  min-width:42px;
+  min-height:38px;
+  padding:7px 10px;
+  border-radius:9px;
+  cursor:pointer;
+  font-weight:700;
+}
+.stock-filter-bar{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  width:100%;
+  margin:0 auto 12px;
+}
+.stock-filter-btn{
+  border:1px solid #ddd;
+  background:#fff;
+  padding:8px 13px;
+  border-radius:999px;
+  cursor:pointer;
+  font-weight:600;
+}
+.stock-filter-btn.active{
+  box-shadow:0 0 0 2px rgba(0,0,0,.08);
+  transform:translateY(-1px);
+}
+.admin-product-controls{
+  position:relative;
+  z-index:5;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="app-header">
+    <button id="headerLogoBtn" class="header-logo-btn" onclick="handleLogoClick()" title="Logo de la tienda" data-i18n-title="logo_tooltip">
+      <img id="headerLogoImg" src="" alt="Logo" style="display:none;">
+      <svg id="headerLogoSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </button>
+    <span id="headerStoreName" class="header-title"></span>
+    <div id="langSwitcher" style="display:flex; gap:4px; margin-left:auto;">
+      <button type="button" class="lang-btn" data-lang="es" onclick="setLanguage('es')" title="Español">🇪🇸</button>
+      <button type="button" class="lang-btn" data-lang="en" onclick="setLanguage('en')" title="English">🇺🇸</button>
+      <button type="button" class="lang-btn" data-lang="fr" onclick="setLanguage('fr')" title="Français">🇫🇷</button>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-view="catalogo" onclick="switchView('catalogo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span data-i18n="tab_catalogo">Catálogo</span>
+    </button>
+    <button class="tab-btn" data-view="carrito" onclick="switchView('carrito')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      <span style="position:relative"><span data-i18n="tab_carrito">Carrito</span><span id="cartBadge" class="badge" style="display:none">0</span></span>
+    </button>
+    <button class="tab-btn" data-view="pedidos" onclick="switchView('pedidos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+      <span data-i18n="tab_pedidos">Pedidos</span>
+    </button>
+    <button class="tab-btn" data-view="chat" onclick="switchView('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      <span data-i18n="tab_chat">Chat</span>
+    </button>
+  </div>
+
+  <div id="landingScreen" style="display:none; flex:1; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:32px 24px; gap:14px; overflow-y:auto;">
+    <div style="width:64px; height:64px; border-radius:50%; background:var(--surface-muted); display:flex; align-items:center; justify-content:center; font-size:28px;">🛍️</div>
+    <h1 style="font-size:19px; font-weight:700;" data-i18n="landing_title">Vende desde casa</h1>
+    <p id="landingNotFound" style="display:none; font-size:13.5px; color:var(--danger); font-weight:600;" data-i18n="landing_not_found">Ese link de tienda no existe o ya no está disponible.</p>
+    <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.5; max-width:340px;" data-i18n="landing_intro">Crea tu propia tienda en minutos, o si ya tienes una, inicia sesión para administrarla.</p>
+    <button class="whatsapp-btn" style="background:var(--text-primary); max-width:280px; margin-top:4px;" onclick="openCreateStoreModal()" data-i18n="landing_create_btn">✨ Crear mi tienda</button>
+    <button class="btn-full" style="background:var(--surface-muted); color:var(--text-primary); max-width:280px; border:1px solid var(--border);" onclick="openLoginModal()" data-i18n="landing_login_btn">Ya tengo una tienda, iniciar sesión</button>
+  </div>
+
+  <div class="views">
+    <div id="catalogo" class="view active">
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar" data-i18n-placeholder="search_placeholder" oninput="filterProducts()">
+      </div>
+      <div class="filters" id="categoryFilters">
+        <button class="filter-chip active" data-filter="all" onclick="setCategory('all')" data-i18n="filter_all">Todo</button>
+      </div>
+      <div id="adminControlsArea" style="display:none; margin-bottom:15px;">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button class="whatsapp-btn" style="background:var(--text-primary); margin-top:0; margin-bottom:0; flex:1;" onclick="openAddModal()" data-i18n="admin_upload_btn">
+            ➕ Subir Producto Nuevo
+          </button>
+          <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:0; flex:1;" onclick="openCategoryModal()" data-i18n="admin_create_category_btn">
+            📁 Crear Categoría
+          </button>
+        </div>
+        <button class="whatsapp-btn" style="background:var(--accent); margin-top:0; margin-bottom:8px;" onclick="copyStoreLink()" data-i18n="admin_share_link_btn">
+          📋 Compartir el link de mi tienda
+        </button>
+        <button class="btn-sm" style="width:100%; justify-content:center; margin-bottom:8px;" onclick="openAccountModal()" data-i18n="admin_settings_btn">
+          ⚙️ Configurar mi tienda
+        </button>
+        <button class="btn-sm" style="width:100%; justify-content:center; color:var(--danger); border-color:var(--danger);" onclick="logoutAdmin()" data-i18n="admin_exit_btn">
+          🔓 Salir del modo administrador
+        </button>
+      </div>
+      
+      <div class="stock-filter-bar" id="stockFilterBar" style="display:none;">
+        <button type="button" class="stock-filter-btn active" data-stock-filter="all" onclick="setStockFilter('all')" data-i18n="stock_all">Todos</button>
+        <button type="button" class="stock-filter-btn" data-stock-filter="available" onclick="setStockFilter('available')" data-i18n="stock_available">Disponibles</button>
+        <button type="button" class="stock-filter-btn" data-stock-filter="low" onclick="setStockFilter('low')" data-i18n="stock_low">Poco stock</button>
+        <button type="button" class="stock-filter-btn" data-stock-filter="out" onclick="setStockFilter('out')" data-i18n="stock_out">Agotados</button>
+      </div>
+
+      <div id="productGrid" class="product-grid" data-i18n="loading_catalog">Cargando catálogo...</div>
+    </div>
+
+    <div id="carrito" class="view">
+      <div id="cartItems"></div>
+      <div id="cartEmpty" class="empty-state">
+        <p data-i18n="cart_empty">Tu carrito está vacío</p>
+      </div>
+      <div id="cartSummary" style="display:none">
+        <input type="text" id="orderName" class="form-input" placeholder="Tu nombre completo" data-i18n-placeholder="order_name_placeholder">
+        <input type="tel" id="orderPhone" class="form-input" placeholder="Tu número de celular" data-i18n-placeholder="order_phone_placeholder">
+        <div class="total-bar">
+          <span class="total-label" data-i18n="total_label">Total a pagar</span>
+          <span class="total-value" id="cartTotal">$0</span>
+        </div>
+        <button class="whatsapp-btn" onclick="sendWhatsAppOrder()" data-i18n="order_whatsapp_btn">Pedir por WhatsApp</button>
+      </div>
+    </div>
+
+    <div id="pedidos" class="view">
+      <div class="admin-toggle" id="adminToggleBar" onclick="openAdminPanel()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span id="adminLabel" data-i18n="admin_login_entry">🔑 Iniciar sesión como administrador/a</span>
+        <span style="margin-left:auto;font-size:16px;color:var(--accent);">›</span>
+      </div>
+      <button id="clearOrdersBtn" onclick="clearAllOrders()" style="display:none; width:100%; padding:10px; border:1px dashed var(--danger); border-radius:var(--radius-md); background:var(--surface); color:var(--danger); font-size:13px; font-weight:600; cursor:pointer; margin-bottom:14px;" data-i18n="clear_orders_btn">🧹 Vaciar todos los pedidos (usar solo para limpiar pruebas)</button>
+      <div id="ordersList"></div>
+    </div>
+
+    <div id="chat" class="view">
+      <div class="whatsapp-chat-card">
+        <p class="whatsapp-chat-intro" data-i18n="chat_intro">¿Tienes una pregunta sobre un producto o servicio, un pedido o algo más? Escribe tu mensaje: se abrirá WhatsApp con todo listo, solo tienes que darle <strong>Enviar</strong> allí.</p>
+        <input type="text" id="chatName" class="form-input" placeholder="Tu nombre completo" data-i18n-placeholder="order_name_placeholder">
+        <textarea id="chatMessage" class="form-input" rows="4" placeholder="Escribe tu mensaje..." data-i18n-placeholder="chat_message_placeholder" style="resize:vertical; font-family:inherit;"></textarea>
+        <button class="whatsapp-btn" onclick="sendWhatsAppMessage()" data-i18n="chat_send_btn">
+          💬 Enviar por WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER COMPACTO -->
+  <footer class="app-footer">
+    KREADU S.A.S. - Empresa AI Business Systems Lab - Academy - KREADU School<br>
+    Contacto: <a href="mailto:is@kreadu.com">is@kreadu.com</a>; <a href="tel:+573235297951">(+57) 3235297951</a>; <a href="tel:+573225832662">(+57) 3225832662</a>
+  </footer>
+
+  <!-- MODALS -->
+  <div id="loginModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" id="loginModalTitle" data-i18n="login_title">Admin Login</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <input type="text" id="adminEmail" class="form-input" placeholder="Usuario (8 caracteres)" maxlength="8" data-i18n-placeholder="username_placeholder">
+      <div class="password-wrap">
+        <input type="password" id="adminPass" class="form-input" placeholder="Contraseña" data-i18n-placeholder="password_placeholder">
+        <button type="button" class="password-toggle" id="passToggleBtn" onclick="togglePassword()" title="Mostrar contraseña" data-i18n-title="show_password_tooltip">👁️</button>
+      </div>
+      <div id="createStoreFields" style="display:none;">
+        <input type="text" id="newStoreName" class="form-input" placeholder="Nombre de tu tienda" data-i18n-placeholder="store_name_placeholder">
+        <div style="display:flex; gap:8px;">
+          <select id="newStoreWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+          <input type="tel" id="newStoreWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+        </div>
+      </div>
+      <button class="btn-full" id="loginSubmitBtn" onclick="loginAdmin()" data-i18n="login_btn">Ingresar</button>
+      <button type="button" class="btn-sm" style="width:100%; margin-top:12px; justify-content:center; padding:11px 8px; font-size:14px; font-weight:600; background:var(--surface-muted);" id="forgotPasswordBtn" onclick="openRecoverModal()" data-i18n="forgot_password_link">¿Olvidaste tu contraseña? Recuperar</button>
+      <button class="btn-full" style="background:#dc2626; margin-top:10px; display:none;" id="logoutBtn" onclick="logoutAdmin()" data-i18n="logout_btn">Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <div id="recoverModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="recover_modal_title">Recuperar acceso</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+
+      <div id="recoverFormSection">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_modal_intro">Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.</p>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <select id="recoverWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+          <input type="tel" id="recoverWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+        </div>
+        <button class="btn-full" id="recoverSubmitBtn" onclick="recoverPassword()" data-i18n="recover_submit_btn">Recuperar acceso</button>
+      </div>
+
+      <div id="recoverResultSection" style="display:none;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;" data-i18n="recover_username_label">Tu usuario:</p>
+          <p id="recoverUsernameResult" style="font-size:17px; font-weight:700; margin-bottom:12px;"></p>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:4px;" data-i18n="recover_password_label">Contraseña temporal:</p>
+          <p id="recoverPasswordResult" style="font-size:17px; font-weight:700; letter-spacing:0.5px;"></p>
+        </div>
+        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="recover_change_notice">Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".</p>
+        <button class="btn-full" onclick="closeModals(); openLoginModal();" data-i18n="recover_go_login_btn">Ir a iniciar sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="accountModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="account_modal_title">Mi Tienda</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="store_link_label">Tu link para compartir:</label>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <input type="text" id="storeLinkInput" class="form-input" readonly style="margin-bottom:0; flex:1;">
+        <button type="button" class="btn-sm" style="flex:0 0 auto; height:44px;" onclick="copyStoreLink()" data-i18n="copy_link_btn">📋 Copiar</button>
+      </div>
+
+      <div id="photoUsageInfo" style="font-size:12px; color:var(--text-secondary); margin-bottom:14px;"></div>
+
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="store_name_label">Nombre de tu tienda:</label>
+      <input type="text" id="accStoreName" class="form-input" placeholder="Nombre de tu tienda" data-i18n-placeholder="store_name_placeholder">
+
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="store_whatsapp_label">Tu número de WhatsApp:</label>
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <select id="accStoreWhatsappCode" class="form-input" style="flex:0 0 118px; margin-bottom:0;"></select>
+        <input type="tel" id="accStoreWhatsappNumber" class="form-input" placeholder="3001234567" style="margin-bottom:0; flex:1;" data-i18n-placeholder="store_whatsapp_number_placeholder">
+      </div>
+
+      <button class="btn-full" onclick="saveStoreSettings()" data-i18n="save_store_settings_btn">Guardar cambios de la tienda</button>
+
+      <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="change_password_label">Cambiar contraseña:</label>
+      <input type="password" id="accCurrentPass" class="form-input" placeholder="Contraseña actual" data-i18n-placeholder="current_password_placeholder">
+      <input type="password" id="accNewPass" class="form-input" placeholder="Contraseña nueva (mínimo 6 caracteres)" data-i18n-placeholder="new_password_placeholder">
+      <button class="btn-full" style="background:var(--text-secondary);" onclick="changeAdminPassword()" data-i18n="change_password_btn">Actualizar contraseña</button>
+
+      <button class="btn-full" style="background:#dc2626; margin-top:14px;" onclick="logoutAdmin()" data-i18n="logout_btn">Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <div id="addProductModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" id="modalProductTitle" data-i18n="upload_product_title">Subir Producto o Servicio</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <input type="hidden" id="editProdId">
+      <input type="text" id="newProdName" class="form-input" placeholder="Nombre del Producto o Servicio" data-i18n-placeholder="product_name_placeholder">
+      <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:12px;">
+        <input type="number" id="newProdPrice" class="form-input" style="flex:1; margin-bottom:0;" placeholder="Precio" data-i18n-placeholder="product_price_placeholder" min="0" step="0.01">
+        <select id="newProdCurrency" class="form-input" style="flex:0 0 155px; margin-bottom:0;" aria-label="Moneda" data-i18n-aria-label="currency_label">
+          <option value="COP">$ Peso — Peso</option>
+          <option value="EUR">€ EUR — Euro</option>
+          <option value="USD">US$ USD — Dólar</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:8px; align-items:flex-start;">
+        <select id="newProdCat" class="form-input" style="flex:1;">
+          <option value="" data-i18n="select_category">Selecciona una categoría</option>
+        </select>
+        <button type="button" class="btn-sm" style="flex:0 0 auto; height:44px; margin-bottom:12px; white-space:nowrap;" onclick="openCategoryModal()" data-i18n="add_category_btn">+ Categoría</button>
+      </div>
+      <input type="text" id="newProdSize" class="form-input" placeholder="Talla(s) (ej: S, M, L o Única)" data-i18n-placeholder="product_size_placeholder">
+      <input type="text" id="newProdColors" class="form-input" placeholder="Color(es) (ej: Rojo, Negro, Azul)" data-i18n-placeholder="product_colors_placeholder">
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label style="font-size:12px; margin-bottom:3px; display:block;" data-i18n="current_stock_label">Stock actual:</label>
+          <input type="number" id="newProdStock" class="form-input" placeholder="Cantidad" data-i18n-placeholder="quantity_placeholder" value="10">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px; margin-bottom:3px; display:block;" data-i18n="min_stock_label">Stock mínimo de alerta:</label>
+          <input type="number" id="newProdMinStock" class="form-input" placeholder="Mínimo" data-i18n-placeholder="minimum_placeholder" value="3">
+        </div>
+      </div>
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="photo_label">Selecciona una foto (Opcional por ahora):</label>
+      <input type="file" id="newProdImg" class="form-input">
+      <button class="btn-full" onclick="saveProduct()" data-i18n="save_product_btn">Guardar Producto</button>
+    </div>
+  </div>
+
+  <div id="logoModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="logo_modal_title">Cambiar Logo de la Tienda</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <label style="font-size:12px; margin-bottom:5px; display:block;" data-i18n="logo_select_label">Selecciona la imagen para el logo:</label>
+      <input type="file" id="newLogoImg" class="form-input">
+      <button class="btn-full" onclick="saveLogo()" data-i18n="save_logo_btn">Guardar Logo</button>
+      <button class="btn-full" style="background:var(--surface-muted); color:var(--danger); border:1px solid var(--border); margin-top:8px;" onclick="removeLogo()" data-i18n="remove_logo_btn">🗑️ Quitar logo (Dejar en blanco)</button>
+    </div>
+  </div>
+
+  <div id="categoryModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="category_modal_title">Nueva Categoría</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <input type="text" id="newCatName" class="form-input" placeholder="Nombre de la categoría (ej: Producto o Servicio)" data-i18n-placeholder="category_name_placeholder">
+      <button class="btn-full" onclick="saveCategory()" data-i18n="save_category_btn">Guardar Categoría</button>
+    </div>
+  </div>
+
+  <div id="whatsappQrModal" class="modal-overlay" onclick="closeModals(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title" data-i18n="qr_modal_title">Continúa desde tu celular</span>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <p style="font-size:13.5px; color:var(--text-secondary); line-height:1.5; margin-bottom:14px;" data-i18n="qr_modal_text">
+        Escanea este código con la cámara de <strong>tu celular</strong> (no de esta computadora) para abrir WhatsApp con tu mensaje ya listo.
+      </p>
+      <div style="display:flex; justify-content:center; margin-bottom:14px;">
+        <img id="whatsappQrImg" src="" alt="Código QR de WhatsApp" style="width:220px; height:220px; border:1px solid var(--border); border-radius:var(--radius-md); background:#fff;">
+      </div>
+      <p style="font-size:12px; color:var(--text-tertiary); text-align:center;" data-i18n="qr_modal_alt_text">
+        ¿No puedes escanear? Copia el mensaje y escríbenos a nuestro WhatsApp desde tu celular.
+      </p>
+      <button class="btn-sm" style="width:100%; margin-top:10px;" onclick="copyWhatsAppMessage()" data-i18n="copy_message_btn">📋 Copiar mensaje</button>
+    </div>
+  </div>
+
+  <div id="imageLightbox" class="modal-overlay" onclick="closeImageLightbox()">
+    <img id="lightboxImg" src="" alt="">
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCLWpzC7SGN_-t7SlrDiOf3rZqv59T8b0E",
+  authDomain: "kreadu-dd0c9.firebaseapp.com",
+  projectId: "kreadu-dd0c9",
+  storageBucket: "kreadu-dd0c9.firebasestorage.app",
+  messagingSenderId: "74274232747",
+  appId: "1:74274232747:web:4b74c3483c89bc907edaee"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+// ===== MULTI-TIENDA: cada vendedora tiene su propia tienda identificada por ?tienda=ID en el link =====
+const urlParams = new URLSearchParams(window.location.search);
+let storeId = urlParams.get('tienda') || null;
+let storeExists = false;
+
+function storeRef() { return db.collection('stores').doc(storeId); }
+function storeCol(name) { return storeRef().collection(name); }
+
+function goToStore(id) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tienda', id);
+  window.location.href = url.toString();
+}
+
+function copyStoreLink() {
+  if(!storeId) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set('tienda', storeId);
+  navigator.clipboard.writeText(url.toString())
+    .then(() => showToast(t('toast_link_copied')))
+    .catch(() => showToast(t('toast_copy_failed')));
+}
+
+const UPLOAD_WORKER_URL = "https://generalfoto.raipimo37.workers.dev/";
+
+// ===== LÍMITE GLOBAL DE FOTOS POR TIENDA =====
+// Cada tienda (documento stores/{storeId}) solo puede subir un máximo de
+// MAX_STORE_PHOTOS fotos en total (productos + logo), contadas de forma
+// acumulada en el campo "photosUploaded" de Firestore. El contador NUNCA baja
+// al borrar o reemplazar una foto, porque el archivo sigue ocupando espacio
+// en R2 (este código no borra archivos de Cloudflare al eliminar/editar un
+// producto). MAX_STORE_PHOTOS aquí es solo para mostrar el "X / 7" en la UI:
+// el límite que realmente se aplica vive en el Worker de Cloudflare, que es
+// quien lee y aumenta "photosUploaded" de forma autoritativa (usando una
+// cuenta de servicio de Firebase), así que no se puede saltar editando el
+// JavaScript del navegador.
+const MAX_STORE_PHOTOS = 7;
+const MAX_STORE_PRODUCTS = 6;
+
+function uploadToR2(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('storeId', storeId);
+  return fetch(UPLOAD_WORKER_URL, { method: 'POST', body: formData })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().catch(() => null).then(body => {
+          throw new Error(body && body.error ? body.error : ('Error al subir la imagen (' + res.status + ')'));
+        });
+      }
+      return res.json();
+    })
+    .then(data => data.url);
+}
+
+// Borra una foto de R2 y descuenta 1 del contador de la tienda. Si la URL no
+// es una foto real (por ejemplo, la imagen de respaldo/placeholder) no hace nada.
+// Nunca bloquea el flujo principal: si falla, solo se registra en consola.
+function deleteFromR2(url) {
+  if (!url || url === FALLBACK_IMG) return Promise.resolve();
+  const formData = new FormData();
+  formData.append('action', 'delete');
+  formData.append('storeId', storeId);
+  formData.append('url', url);
+  return fetch(UPLOAD_WORKER_URL, { method: 'POST', body: formData })
+    .then(res => res.json().catch(() => ({})))
+    .catch(err => { console.error('Error al borrar la imagen anterior:', err); });
+}
+
+let storeWhatsapp = ""; // número de WhatsApp propio de cada tienda, se carga desde Firestore
+let pendingWhatsAppText = '';
+
+const I18N = {
+  es: {
+    tab_catalogo:'Catálogo', tab_carrito:'Carrito', tab_pedidos:'Pedidos', tab_chat:'Chat',
+    search_placeholder:'Buscar', filter_all:'Todo',
+    admin_upload_btn:'➕ Subir Producto Nuevo',
+    admin_create_category_btn:'📁 Crear Categoría',
+    admin_share_link_btn:'📋 Compartir el link de mi tienda', admin_settings_btn:'⚙️ Configurar mi tienda', admin_exit_btn:'🔓 Salir del modo administrador',
+    toast_store_created_share_hint:'🎉 ¡Tu tienda está lista! Copia tu link de abajo y compártelo con tus clientes para que puedan comprarte.',
+    stock_all:'Todos', stock_available:'Disponibles', stock_low:'Poco stock', stock_out:'Agotados',
+    loading_catalog:'Cargando catálogo...', no_products:'No hay productos o servicios disponibles',
+    add_btn:'Agregar', not_available:'No disponible', not_available_admin:'No disponible · Puedes editarla o borrarla',
+    confirm_delete_product:'¿Seguro que deseas eliminar este artículo?', toast_product_deleted:'Producto eliminado',
+    alert_product_not_available:'Este producto no está disponible', toast_added_to_cart:'Añadido al carrito',
+    low_stock_prefix:'⚠️ Stock bajo', stock_prefix:'Stock', size_prefix:'Talla', color_prefix:'Color',
+    size_default:'Única', color_default:'Varios', edit_btn:'✏️ Editar', delete_product_btn:'🗑️ Borrar',
+    cart_empty:'Tu carrito está vacío',
+    order_name_placeholder:'Tu nombre completo', order_phone_placeholder:'Tu número de celular',
+    total_label:'Total a pagar', order_whatsapp_btn:'Pedir por WhatsApp',
+    admin_label_client:'Modo cliente', admin_label_admin:'Modo vendedora (Activo)',
+    admin_login_entry:'🔑 Iniciar sesión como administrador/a',
+    admin_lock_hint:'Acceso admin 🔒',
+    clear_orders_btn:'🧹 Vaciar todos los pedidos (usar solo para limpiar pruebas)',
+    no_orders:'No hay pedidos',
+    chat_intro:'¿Tienes una pregunta sobre un producto o servicio, un pedido o algo más? Escribe tu mensaje: se abrirá WhatsApp con todo listo, solo tienes que darle <strong>Enviar</strong> allí.',
+    chat_message_placeholder:'Escribe tu mensaje...', chat_send_btn:'💬 Enviar por WhatsApp',
+    login_title:'Admin Login', username_placeholder:'Usuario (8 caracteres)', password_placeholder:'Contraseña',
+    register_btn:'Crear cuenta de administrador',
+    alert_username_format:'El usuario debe tener exactamente 8 caracteres (letras y números).',
+    alert_password_short:'La contraseña debe tener al menos 6 caracteres.',
+    alert_admin_already_exists:'Ya existe una cuenta de administrador para esta tienda.',
+    toast_admin_created:'¡Cuenta de administrador creada! Ya iniciaste sesión.',
+    login_btn:'Ingresar', logout_btn:'Cerrar Sesión',
+    upload_product_title:'Subir Artículo', edit_product_title:'Editar Artículo',
+    alert_admin_login_required:'Inicia sesión como administrador.',
+    toast_welcome_admin:'¡Bienvenida Administradora!', alert_login_error:'Error de acceso: ',
+    alert_auth_failed:'No se pudo iniciar la app: ', alert_auth_hint:'\n\nRevisa que el proveedor "Anonymous" esté activado en Firebase.',
+    toast_only_admin_logo:'Solo la administradora puede cambiar el logo', alert_select_logo_image:'Selecciona una imagen para el logo',
+    toast_uploading_logo:'Subiendo logo...', toast_logo_updated:'¡Logo actualizado con éxito!', toast_logo_removed:'Logo eliminado (en blanco)', alert_logo_upload_error:'Error al subir logo: ',
+    remove_logo_btn:'🗑️ Quitar logo (Dejar en blanco)',
+    alert_login_required_category:'Debes iniciar sesión como administrador para crear categorías.', alert_action_denied_admin:'Acción denegada. Debes iniciar sesión como admin.',
+    alert_category_name_required:'Escribe un nombre para la categoría', alert_category_exists:'Esa categoría ya existe (o es muy similar a una existente)',
+    toast_category_created:'¡Categoría creada!', alert_category_create_error:'Error al crear categoría: ',
+    alert_action_not_allowed:'Acción no permitida.', confirm_delete_category:'¿Eliminar esta categoría?', toast_category_deleted:'Categoría eliminada',
+    alert_not_authorized:'No autorizado.', alert_required_fields:'Completa al menos el nombre, precio y categoría',
+    alert_stock_negative:'El stock no puede ser negativo.', alert_min_stock_negative:'El stock mínimo no puede ser negativo.',
+    toast_operation_success:'¡Operación exitosa!', alert_generic_error:'Error: ', alert_image_upload_error:'Error al subir imagen: ',
+    alert_photo_limit_reached:'Límite alcanzado: esta tienda ya subió el máximo de {max} fotos permitidas.', photo_usage_label:'Fotos usadas',
+    alert_product_limit_reached:'Has alcanzado el límite de {max} productos/servicios de tu plan. Para ampliarlo, contáctanos por WhatsApp a alguno de los números que aparecen al final de esta página, o escríbenos a is@kreadu.com.',
+    toast_updating_product:'Actualizando producto...', toast_saving_product:'Guardando producto...',
+    logo_tooltip:'Logo de la tienda', show_password_tooltip:'Mostrar contraseña', add_category_tooltip:'Agregar categoría', delete_category_tooltip:'Eliminar categoría',
+    product_name_placeholder:'Nombre del Artículo', product_price_placeholder:'Precio', currency_label:'Moneda',
+    select_category:'Selecciona una categoría', add_category_btn:'+ Categoría',
+    product_size_placeholder:'Talla(s) (ej: S, M, L o Única)', product_colors_placeholder:'Color(es) (ej: Rojo, Negro, Azul)',
+    current_stock_label:'Stock actual:', quantity_placeholder:'Cantidad',
+    min_stock_label:'Stock mínimo de alerta:', minimum_placeholder:'Mínimo',
+    photo_label:'Selecciona una foto (Opcional por ahora):', save_product_btn:'Guardar Producto',
+    logo_modal_title:'Cambiar o Quitar Logo', logo_select_label:'Selecciona la imagen para el logo:', save_logo_btn:'Guardar Logo',
+    category_modal_title:'Nueva Categoría', category_name_placeholder:'Nombre de la categoría (ej: Producto o Servicio)', save_category_btn:'Guardar Categoría',
+    qr_modal_title:'Continúa desde tu celular',
+    qr_modal_text:'Escanea este código con la cámara de <strong>tu celular</strong> (no de esta computadora) para abrir WhatsApp con tu mensaje ya listo.',
+    qr_modal_alt_text:'¿No puedes escanear? Copia el mensaje y escríbenos a nuestro WhatsApp desde tu celular.',
+    copy_message_btn:'📋 Copiar mensaje',
+    status_Pendiente:'Pendiente', status_Enviado:'Enviado', status_Entregado:'Entregado',
+    order_btn_send:'📦 Enviar', order_btn_deliver:'✅ Entregar', order_btn_edited:'✅ Editado',
+    order_btn_reopen:'↩️ Reabrir', order_btn_delete:'🗑 Eliminar', order_total:'Total',
+    toast_wa_opened:'Se abrió WhatsApp con tu mensaje. No olvides darle "Enviar" allí.',
+    toast_copied:'Mensaje copiado. Pégalo en WhatsApp desde tu celular.',
+    toast_copy_failed:'No se pudo copiar. Selecciona y copia el mensaje manualmente.',
+    toast_no_stock:'No hay más stock', toast_no_stock_available:'No hay más stock disponible',
+    toast_logged_out:'Sesión cerrada', toast_order_deleted:'Pedido eliminado',
+    toast_orders_deleted:'Pedidos eliminados', toast_no_orders_to_delete:'No hay pedidos para borrar',
+    toast_delete_cancelled:'Cancelado, no se borró nada',
+    alert_name_phone_required:'Por favor ingresa tu nombre y celular',
+    alert_order_error:'Error al procesar el pedido: ',
+    alert_delete_order_error:'Error al eliminar el pedido: ',
+    alert_clear_orders_error:'Error al vaciar los pedidos: ',
+    alert_chat_message_required:'Escribe tu mensaje antes de enviarlo.',
+    confirm_reopen_order:'¿Reabrir este pedido? Volverá al estado "Enviado" y podrás editarlo de nuevo.',
+    confirm_delete_order:'¿Eliminar este pedido de forma permanente? Esta acción no se puede deshacer.',
+    confirm_clear_orders:'Esto eliminará TODOS los pedidos actuales de forma permanente (útil para limpiar pruebas). ¿Continuar?',
+    prompt_clear_orders:'Para confirmar, escribe BORRAR en mayúsculas:',
+    wa_order_hello:'¡Hola! Soy', wa_order_intro:'. Quiero hacer un pedido:',
+    wa_order_total:'Total', wa_order_phone:'Mi celular es',
+    wa_chat_hello:'Hola, soy', wa_chat_default_name:'un cliente de la tienda',
+    toast_link_copied:'¡Link copiado! Ya puedes compartirlo.', alert_store_no_whatsapp:'Esta tienda todavía no tiene un WhatsApp configurado.',
+    alert_no_store_for_account:'Esta cuenta no tiene ninguna tienda asociada.', toast_redirecting_to_store:'Te estamos llevando a tu tienda...',
+    toast_store_created:'¡Tu tienda fue creada con éxito!', alert_store_name_required:'Escribe el nombre de tu tienda',
+    alert_store_whatsapp_required:'Escribe tu número de WhatsApp (con código de país, sin + ni espacios)',
+    create_store_title:'Crea tu tienda', create_store_btn:'Crear mi tienda',
+    create_store_link:'¿No tienes tienda? Crea la tuya', back_to_login_link:'Ya tengo una tienda, iniciar sesión',
+    forgot_password_link:'¿Olvidaste tu contraseña? Recuperar',
+    recover_modal_title:'Recuperar acceso', recover_modal_intro:'Escribe el número de WhatsApp con el que registraste tu tienda. Si coincide, te mostraremos tu usuario y una contraseña temporal.',
+    recover_submit_btn:'Recuperar acceso', recover_loading:'Buscando...',
+    recover_username_label:'Tu usuario:', recover_password_label:'Contraseña temporal:',
+    recover_change_notice:'Inicia sesión con estos datos y cambia tu contraseña cuanto antes desde "Mi Tienda".',
+    recover_go_login_btn:'Ir a iniciar sesión',
+    alert_recover_number_required:'Escribe el número de WhatsApp de tu tienda',
+    alert_recover_generic_error:'No se pudo procesar la recuperación. Intenta de nuevo. ',
+    store_name_placeholder:'Nombre de tu tienda', store_whatsapp_placeholder:'Tu WhatsApp (ej: 573001234567)',
+    store_whatsapp_number_placeholder:'Ej: 3001234567 (sin código de país)',
+    account_modal_title:'Mi Tienda', store_link_label:'Tu link para compartir:', copy_link_btn:'📋 Copiar',
+    store_name_label:'Nombre de tu tienda:', store_whatsapp_label:'Tu número de WhatsApp:',
+    save_store_settings_btn:'Guardar cambios de la tienda',
+    change_password_label:'Cambiar contraseña:', current_password_placeholder:'Contraseña actual', new_password_placeholder:'Contraseña nueva (mínimo 6 caracteres)',
+    change_password_btn:'Actualizar contraseña', toast_store_settings_saved:'¡Datos de la tienda actualizados!',
+    alert_password_fields_required:'Completa tu contraseña actual y la nueva', toast_password_changed:'¡Contraseña actualizada con éxito!',
+    landing_title:'Vende desde casa', landing_not_found:'Ese link de tienda no existe o ya no está disponible.',
+    landing_intro:'Crea tu propia tienda en minutos, o si ya tienes una, inicia sesión para administrarla.',
+    landing_create_btn:'✨ Crear mi tienda', landing_login_btn:'Ya tengo una tienda, iniciar sesión',
+  },
+  en: {
+    tab_catalogo:'Catalog', tab_carrito:'Cart', tab_pedidos:'Orders', tab_chat:'Chat',
+    search_placeholder:'Search', filter_all:'All',
+    admin_upload_btn:'➕ Upload New Item',
+    admin_create_category_btn:'📁 Create Category',
+    admin_share_link_btn:'📋 Share my store link', admin_settings_btn:'⚙️ Store settings', admin_exit_btn:'🔓 Exit admin mode',
+    toast_store_created_share_hint:'🎉 Your store is ready! Copy your link below and share it with your customers so they can buy from you.',
+    stock_all:'All', stock_available:'Available', stock_low:'Low stock', stock_out:'Out of stock',
+    loading_catalog:'Loading catalog...', no_products:'No items available',
+    add_btn:'Add', not_available:'Not available', not_available_admin:'Not available · You can edit or delete it',
+    confirm_delete_product:'Are you sure you want to delete this item?', toast_product_deleted:'Product deleted',
+    alert_product_not_available:'This product is not available', toast_added_to_cart:'Added to cart',
+    low_stock_prefix:'⚠️ Low stock', stock_prefix:'Stock', size_prefix:'Size', color_prefix:'Color',
+    size_default:'One Size', color_default:'Various', edit_btn:'✏️ Edit', delete_product_btn:'🗑️ Delete',
+    cart_empty:'Your cart is empty',
+    order_name_placeholder:'Your full name', order_phone_placeholder:'Your phone number',
+    total_label:'Total to pay', order_whatsapp_btn:'Order via WhatsApp',
+    admin_label_client:'Customer mode', admin_label_admin:'Seller mode (Active)',
+    admin_login_entry:'🔑 Log in as administrator',
+    admin_lock_hint:'Admin access 🔒',
+    clear_orders_btn:'🧹 Clear all orders (test data cleanup only)',
+    no_orders:'No orders yet',
+    chat_intro:'Have a question about a product or service, an order, or anything else? Write your message: WhatsApp will open with everything ready, just tap <strong>Send</strong> there.',
+    chat_message_placeholder:'Write your message...', chat_send_btn:'💬 Send via WhatsApp',
+    login_title:'Admin Login', username_placeholder:'Username (8 characters)', password_placeholder:'Password',
+    register_btn:'Create administrator account',
+    alert_username_format:'Username must be exactly 8 characters (letters and numbers).',
+    alert_password_short:'Password must be at least 6 characters.',
+    alert_admin_already_exists:'An administrator account already exists for this store.',
+    toast_admin_created:'Administrator account created! You are now logged in.',
+    login_btn:'Log In', logout_btn:'Log Out',
+    upload_product_title:'Upload Item', edit_product_title:'Edit Item',
+    alert_admin_login_required:'Log in as an administrator.',
+    toast_welcome_admin:'Welcome, Admin!', alert_login_error:'Login error: ',
+    alert_auth_failed:'Could not start the app: ', alert_auth_hint:'\n\nCheck that the "Anonymous" provider is enabled in Firebase.',
+    toast_only_admin_logo:'Only the administrator can change the logo', alert_select_logo_image:'Select an image for the logo',
+    toast_uploading_logo:'Uploading logo...', toast_logo_updated:'Logo updated successfully!', toast_logo_removed:'Logo removed (blank)', alert_logo_upload_error:'Error uploading logo: ',
+    remove_logo_btn:'🗑️ Remove logo (Leave blank)',
+    alert_login_required_category:'You must log in as administrator to create categories.', alert_action_denied_admin:'Action denied. You must log in as admin.',
+    alert_category_name_required:'Enter a name for the category', alert_category_exists:'That category already exists (or is very similar to an existing one)',
+    toast_category_created:'Category created!', alert_category_create_error:'Error creating category: ',
+    alert_action_not_allowed:'Action not allowed.', confirm_delete_category:'Delete this category?', toast_category_deleted:'Category deleted',
+    alert_not_authorized:'Not authorized.', alert_required_fields:'Fill in at least the name, price, and category',
+    alert_stock_negative:'Stock cannot be negative.', alert_min_stock_negative:'Minimum stock cannot be negative.',
+    toast_operation_success:'Success!', alert_generic_error:'Error: ', alert_image_upload_error:'Error uploading image: ',
+    alert_photo_limit_reached:'Limit reached: this store already uploaded the maximum of {max} allowed photos.', photo_usage_label:'Photos used',
+    alert_product_limit_reached:'You have reached your plan\'s limit of {max} products/services. To expand it, contact us on WhatsApp at one of the numbers shown at the bottom of this page, or email is@kreadu.com.',
+    toast_updating_product:'Updating product...', toast_saving_product:'Saving product...',
+    logo_tooltip:'Store logo', show_password_tooltip:'Show password', add_category_tooltip:'Add category', delete_category_tooltip:'Delete category',
+    product_name_placeholder:'Item name', product_price_placeholder:'Price', currency_label:'Currency',
+    select_category:'Select a category', add_category_btn:'+ Category',
+    product_size_placeholder:'Size(s) (e.g. S, M, L or One Size)', product_colors_placeholder:'Color(s) (e.g. Red, Black, Blue)',
+    current_stock_label:'Current stock:', quantity_placeholder:'Quantity',
+    min_stock_label:'Minimum stock alert:', minimum_placeholder:'Minimum',
+    photo_label:'Select a photo (optional for now):', save_product_btn:'Save Product',
+    logo_modal_title:'Change or Remove Logo', logo_select_label:'Select the image for the logo:', save_logo_btn:'Save Logo',
+    category_modal_title:'New Category', category_name_placeholder:'Category name (e.g. Dresses)', save_category_btn:'Save Category',
+    qr_modal_title:'Continue from your phone',
+    qr_modal_text:'Scan this code with <strong>your phone\'s</strong> camera (not this computer) to open WhatsApp with your message ready.',
+    qr_modal_alt_text:'Can\'t scan? Copy the message and write to us on WhatsApp from your phone.',
+    copy_message_btn:'📋 Copy message',
+    status_Pendiente:'Pending', status_Enviado:'Shipped', status_Entregado:'Delivered',
+    order_btn_send:'📦 Ship', order_btn_deliver:'✅ Deliver', order_btn_edited:'✅ Edited',
+    order_btn_reopen:'↩️ Reopen', order_btn_delete:'🗑 Delete', order_total:'Total',
+    toast_wa_opened:'WhatsApp opened with your message. Don\'t forget to tap "Send" there.',
+    toast_copied:'Message copied. Paste it in WhatsApp from your phone.',
+    toast_copy_failed:'Could not copy. Select and copy the message manually.',
+    toast_no_stock:'No more stock', toast_no_stock_available:'No more stock available',
+    toast_logged_out:'Signed out', toast_order_deleted:'Order deleted',
+    toast_orders_deleted:'Orders deleted', toast_no_orders_to_delete:'No orders to delete',
+    toast_delete_cancelled:'Cancelled, nothing was deleted',
+    alert_name_phone_required:'Please enter your name and phone number',
+    alert_order_error:'Error processing the order: ',
+    alert_delete_order_error:'Error deleting the order: ',
+    alert_clear_orders_error:'Error clearing the orders: ',
+    alert_chat_message_required:'Write your message before sending it.',
+    confirm_reopen_order:'Reopen this order? It will go back to "Shipped" status and you can edit it again.',
+    confirm_delete_order:'Permanently delete this order? This action cannot be undone.',
+    confirm_clear_orders:'This will permanently delete ALL current orders (useful for clearing test data). Continue?',
+    prompt_clear_orders:'To confirm, type DELETE in capital letters:',
+    wa_order_hello:'Hello! I\'m', wa_order_intro:'. I\'d like to place an order:',
+    wa_order_total:'Total', wa_order_phone:'My phone number is',
+    wa_chat_hello:'Hello, I\'m', wa_chat_default_name:'a store customer',
+    toast_link_copied:'Link copied! You can share it now.', alert_store_no_whatsapp:'This store hasn\'t set up a WhatsApp number yet.',
+    alert_no_store_for_account:'This account has no store associated with it.', toast_redirecting_to_store:'Taking you to your store...',
+    toast_store_created:'Your store was created successfully!', alert_store_name_required:'Enter your store name',
+    alert_store_whatsapp_required:'Enter your WhatsApp number (with country code, no + or spaces)',
+    create_store_title:'Create your store', create_store_btn:'Create my store',
+    create_store_link:'Don\'t have a store? Create yours', back_to_login_link:'I already have a store, log in',
+    forgot_password_link:'Forgot your password? Recover it',
+    recover_modal_title:'Recover access', recover_modal_intro:'Enter the WhatsApp number you used to register your store. If it matches, we\'ll show your username and a temporary password.',
+    recover_submit_btn:'Recover access', recover_loading:'Searching...',
+    recover_username_label:'Your username:', recover_password_label:'Temporary password:',
+    recover_change_notice:'Log in with these details and change your password as soon as possible from "My Store".',
+    recover_go_login_btn:'Go to login',
+    alert_recover_number_required:'Enter your store\'s WhatsApp number',
+    alert_recover_generic_error:'Could not process the recovery request. Please try again. ',
+    store_name_placeholder:'Your store name', store_whatsapp_placeholder:'Your WhatsApp (e.g. 573001234567)',
+    store_whatsapp_number_placeholder:'e.g. 3001234567 (without country code)',
+    account_modal_title:'My Store', store_link_label:'Your shareable link:', copy_link_btn:'📋 Copy',
+    store_name_label:'Your store name:', store_whatsapp_label:'Your WhatsApp number:',
+    save_store_settings_btn:'Save store changes',
+    change_password_label:'Change password:', current_password_placeholder:'Current password', new_password_placeholder:'New password (min. 6 characters)',
+    change_password_btn:'Update password', toast_store_settings_saved:'Store details updated!',
+    alert_password_fields_required:'Fill in your current and new password', toast_password_changed:'Password updated successfully!',
+    landing_title:'Sell from home', landing_not_found:'That store link doesn\'t exist or is no longer available.',
+    landing_intro:'Create your own store in minutes, or if you already have one, log in to manage it.',
+    landing_create_btn:'✨ Create my store', landing_login_btn:'I already have a store, log in',
+  },
+  fr: {
+    tab_catalogo:'Catalogue', tab_carrito:'Panier', tab_pedidos:'Commandes', tab_chat:'Chat',
+    search_placeholder:'Rechercher', filter_all:'Tout',
+    admin_upload_btn:'➕ Ajouter un article',
+    admin_create_category_btn:'📁 Créer une catégorie',
+    admin_share_link_btn:'📋 Partager le lien de ma boutique', admin_settings_btn:'⚙️ Paramètres de ma boutique', admin_exit_btn:'🔓 Quitter le mode administrateur',
+    toast_store_created_share_hint:'🎉 Votre boutique est prête ! Copiez votre lien ci-dessous et partagez-le avec vos clients pour permettre vos ventes.',
+    stock_all:'Tous', stock_available:'Disponibles', stock_low:'Stock faible', stock_out:'Épuisé',
+    loading_catalog:'Chargement du catalogue...', no_products:'Aucun article disponible',
+    add_btn:'Ajouter', not_available:'Non disponible', not_available_admin:'Non disponible · Vous pouvez la modifier ou la supprimer',
+    confirm_delete_product:'Voulez-vous vraiment supprimer cet article ?', toast_product_deleted:'Produit supprimé',
+    alert_product_not_available:'Ce produit n\'est pas disponible', toast_added_to_cart:'Ajouté au panier',
+    low_stock_prefix:'⚠️ Stock faible', stock_prefix:'Stock', size_prefix:'Taille', color_prefix:'Couleur',
+    size_default:'Unique', color_default:'Divers', edit_btn:'✏️ Modifier', delete_product_btn:'🗑️ Supprimer',
+    cart_empty:'Votre panier est vide',
+    order_name_placeholder:'Votre nom complet', order_phone_placeholder:'Votre numéro de téléphone',
+    total_label:'Total à payer', order_whatsapp_btn:'Commander via WhatsApp',
+    admin_label_client:'Mode client', admin_label_admin:'Mode vendeuse (Actif)',
+    admin_login_entry:'🔑 Connexion administrateur',
+    admin_lock_hint:'Accès admin 🔒',
+    clear_orders_btn:'🧹 Vider toutes les commandes (nettoyage des tests uniquement)',
+    no_orders:'Aucune commande',
+    chat_intro:'Une question sur un produit ou un service, une commande ou autre chose ? Écrivez votre message : WhatsApp s\'ouvrira avec tout prêt, il ne restera qu\'à appuyer sur <strong>Envoyer</strong>.',
+    chat_message_placeholder:'Écrivez votre message...', chat_send_btn:'💬 Envoyer via WhatsApp',
+    login_title:'Connexion admin', username_placeholder:'Utilisateur (8 caractères)', password_placeholder:'Mot de passe',
+    register_btn:'Créer un compte administrateur',
+    alert_username_format:'Le nom d\'utilisateur doit comporter exactement 8 caractères (lettres et chiffres).',
+    alert_password_short:'Le mot de passe doit comporter au moins 6 caractères.',
+    alert_admin_already_exists:'Un compte administrateur existe déjà pour cette boutique.',
+    toast_admin_created:'Compte administrateur créé ! Vous êtes maintenant connecté(e).',
+    login_btn:'Se connecter', logout_btn:'Se déconnecter',
+    upload_product_title:'Ajouter un article', edit_product_title:'Modifier l\'article',
+    alert_admin_login_required:'Connectez-vous en tant qu\'administrateur.',
+    toast_welcome_admin:'Bienvenue, administratrice !', alert_login_error:'Erreur de connexion : ',
+    alert_auth_failed:'Impossible de démarrer l\'application : ', alert_auth_hint:'\n\nVérifiez que le fournisseur "Anonymous" est activé dans Firebase.',
+    toast_only_admin_logo:'Seule l\'administratrice peut changer le logo', alert_select_logo_image:'Sélectionnez une image pour le logo',
+    toast_uploading_logo:'Envoi du logo...', toast_logo_updated:'Logo mis à jour avec succès !', toast_logo_removed:'Logo supprimé (vide)', alert_logo_upload_error:'Erreur lors de l\'envoi du logo : ',
+    remove_logo_btn:'🗑️ Supprimer le logo (Laisser vide)',
+    alert_login_required_category:'Vous devez vous connecter en tant qu\'administrateur pour créer des catégories.', alert_action_denied_admin:'Action refusée. Vous devez vous connecter en tant qu\'admin.',
+    alert_category_name_required:'Saisissez un nom pour la catégorie', alert_category_exists:'Cette catégorie existe déjà (ou est très similaire à une catégorie existante)',
+    toast_category_created:'Catégorie créée !', alert_category_create_error:'Erreur lors de la création de la catégorie : ',
+    alert_action_not_allowed:'Action non autorisée.', confirm_delete_category:'Supprimer cette catégorie ?', toast_category_deleted:'Catégorie supprimée',
+    alert_not_authorized:'Non autorisé.', alert_required_fields:'Renseignez au moins le nom, le prix et la catégorie',
+    alert_stock_negative:'Le stock ne peut pas être négatif.', alert_min_stock_negative:'Le stock minimum ne peut pas être négatif.',
+    toast_operation_success:'Opération réussie !', alert_generic_error:'Erreur : ', alert_image_upload_error:'Erreur lors de l\'envoi de l\'image : ',
+    alert_photo_limit_reached:'Limite atteinte : cette boutique a déjà téléchargé le maximum de {max} photos autorisées.', photo_usage_label:'Photos utilisées',
+    alert_product_limit_reached:'Vous avez atteint la limite de {max} produits/services de votre forfait. Pour l\'augmenter, contactez-nous sur WhatsApp à l\'un des numéros indiqués en bas de cette page, ou écrivez à is@kreadu.com.',
+    toast_updating_product:'Mise à jour du produit...', toast_saving_product:'Enregistrement du produit...',
+    logo_tooltip:'Logo de la boutique', show_password_tooltip:'Afficher le mot de passe', add_category_tooltip:'Ajouter une catégorie', delete_category_tooltip:'Supprimer la catégorie',
+    product_name_placeholder:'Nom de l\'article', product_price_placeholder:'Prix', currency_label:'Devise',
+    select_category:'Choisissez une catégorie', add_category_btn:'+ Catégorie',
+    product_size_placeholder:'Taille(s) (ex : S, M, L ou Unique)', product_colors_placeholder:'Couleur(s) (ex : Rouge, Noir, Bleu)',
+    current_stock_label:'Stock actuel :', quantity_placeholder:'Quantité',
+    min_stock_label:'Stock minimum d\'alerte :', minimum_placeholder:'Minimum',
+    photo_label:'Choisissez une photo (facultatif pour l\'instant) :', save_product_btn:'Enregistrer le produit',
+    logo_modal_title:'Changer ou supprimer le logo', logo_select_label:'Choisissez l\'image du logo :', save_logo_btn:'Enregistrer le logo',
+    category_modal_title:'Nouvelle catégorie', category_name_placeholder:'Nom de la catégorie (ex : Robes)', save_category_btn:'Enregistrer la catégorie',
+    qr_modal_title:'Continuez depuis votre téléphone',
+    qr_modal_text:'Scannez ce code avec l\'appareil photo de <strong>votre téléphone</strong> (pas cet ordinateur) pour ouvrir WhatsApp avec votre message prêt.',
+    qr_modal_alt_text:'Vous ne pouvez pas scanner ? Copiez le message et écrivez-nous sur WhatsApp depuis votre téléphone.',
+    copy_message_btn:'📋 Copier le message',
+    status_Pendiente:'En attente', status_Enviado:'Expédiée', status_Entregado:'Livrée',
+    order_btn_send:'📦 Expédier', order_btn_deliver:'✅ Livrer', order_btn_edited:'✅ Modifiée',
+    order_btn_reopen:'↩️ Rouvrir', order_btn_delete:'🗑 Supprimer', order_total:'Total',
+    toast_wa_opened:'WhatsApp s\'est ouvert avec votre message. N\'oubliez pas d\'appuyer sur "Envoyer" là-bas.',
+    toast_copied:'Message copié. Collez-le dans WhatsApp depuis votre téléphone.',
+    toast_copy_failed:'Impossible de copier. Sélectionnez et copiez le message manuellement.',
+    toast_no_stock:'Plus de stock', toast_no_stock_available:'Plus de stock disponible',
+    toast_logged_out:'Déconnecté(e)', toast_order_deleted:'Commande supprimée',
+    toast_orders_deleted:'Commandes supprimées', toast_no_orders_to_delete:'Aucune commande à supprimer',
+    toast_delete_cancelled:'Annulé, rien n\'a été supprimé',
+    alert_name_phone_required:'Merci d\'indiquer votre nom et votre numéro de téléphone',
+    alert_order_error:'Erreur lors du traitement de la commande : ',
+    alert_delete_order_error:'Erreur lors de la suppression de la commande : ',
+    alert_clear_orders_error:'Erreur lors de la suppression des commandes : ',
+    alert_chat_message_required:'Écrivez votre message avant de l\'envoyer.',
+    confirm_reopen_order:'Rouvrir cette commande ? Elle repassera au statut "Expédiée" et vous pourrez la modifier à nouveau.',
+    confirm_delete_order:'Supprimer définitivement cette commande ? Cette action est irréversible.',
+    confirm_clear_orders:'Cela supprimera définitivement TOUTES les commandes actuelles (utile pour nettoyer les tests). Continuer ?',
+    prompt_clear_orders:'Pour confirmer, tapez SUPPRIMER en majuscules :',
+    wa_order_hello:'Bonjour ! Je suis', wa_order_intro:'. Je souhaite passer une commande :',
+    wa_order_total:'Total', wa_order_phone:'Mon numéro de téléphone est',
+    wa_chat_hello:'Bonjour, je suis', wa_chat_default_name:'un client de la boutique',
+    toast_link_copied:'Lien copié ! Vous pouvez le partager.', alert_store_no_whatsapp:'Cette boutique n\'a pas encore de numéro WhatsApp configuré.',
+    alert_no_store_for_account:'Ce compte n\'est associé à aucune boutique.', toast_redirecting_to_store:'Redirection vers votre boutique...',
+    toast_store_created:'Votre boutique a été créée avec succès !', alert_store_name_required:'Indiquez le nom de votre boutique',
+    alert_store_whatsapp_required:'Indiquez votre numéro WhatsApp (avec l\'indicatif, sans + ni espaces)',
+    create_store_title:'Créez votre boutique', create_store_btn:'Créer ma boutique',
+    create_store_link:'Vous n\'avez pas de boutique ? Créez la vôtre', back_to_login_link:'J\'ai déjà une boutique, me connecter',
+    forgot_password_link:'Mot de passe oublié ? Récupérer',
+    recover_modal_title:'Récupérer l\'accès', recover_modal_intro:'Indiquez le numéro WhatsApp utilisé pour enregistrer votre boutique. S\'il correspond, nous afficherons votre identifiant et un mot de passe temporaire.',
+    recover_submit_btn:'Récupérer l\'accès', recover_loading:'Recherche...',
+    recover_username_label:'Votre identifiant :', recover_password_label:'Mot de passe temporaire :',
+    recover_change_notice:'Connectez-vous avec ces informations et changez votre mot de passe dès que possible depuis "Ma boutique".',
+    recover_go_login_btn:'Aller à la connexion',
+    alert_recover_number_required:'Indiquez le numéro WhatsApp de votre boutique',
+    alert_recover_generic_error:'Impossible de traiter la récupération. Réessayez. ',
+    store_name_placeholder:'Nom de votre boutique', store_whatsapp_placeholder:'Votre WhatsApp (ex : 573001234567)',
+    store_whatsapp_number_placeholder:'Ex : 3001234567 (sans indicatif)',
+    account_modal_title:'Ma Boutique', store_link_label:'Votre lien à partager :', copy_link_btn:'📋 Copier',
+    store_name_label:'Nom de votre boutique :', store_whatsapp_label:'Votre numéro WhatsApp :',
+    save_store_settings_btn:'Enregistrer les modifications',
+    change_password_label:'Changer le mot de passe :', current_password_placeholder:'Mot de passe actuel', new_password_placeholder:'Nouveau mot de passe (6 caractères min.)',
+    change_password_btn:'Mettre à jour le mot de passe', toast_store_settings_saved:'Informations de la boutique mises à jour !',
+    alert_password_fields_required:'Remplissez votre mot de passe actuel et le nouveau', toast_password_changed:'Mot de passe mis à jour avec succès !',
+    landing_title:'Vendez depuis chez vous', landing_not_found:'Ce lien de boutique n\'existe pas ou n\'est plus disponible.',
+    landing_intro:'Créez votre propre boutique en quelques minutes, ou connectez-vous si vous en avez déjà une.',
+    landing_create_btn:'✨ Créer ma boutique', landing_login_btn:'J\'ai déjà une boutique, me connecter',
+  }
+};
+
+let currentLang = localStorage.getItem('tienda_lang') || 'es';
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || I18N.es[key] || key;
+}
+
+function applyStaticTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.innerHTML = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang);
+  });
+  document.documentElement.setAttribute('lang', currentLang);
+}
+
+function setLanguage(lang) {
+  if (!I18N[lang]) return;
+  currentLang = lang;
+  localStorage.setItem('tienda_lang', lang);
+  applyStaticTranslations();
+  renderCategories();
+  renderProducts();
+  renderCart();
+  if (lastOrdersDocs) renderOrdersList(lastOrdersDocs);
+}
+
+function openWhatsApp(text) {
+  if(!storeWhatsapp) { alert(t('alert_store_no_whatsapp')); return; }
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const waUrl = 'https://wa.me/' + storeWhatsapp + '?text=' + encodeURIComponent(text);
+
+  if (isMobile) {
+    window.open(waUrl, '_blank');
+    showToast(t('toast_wa_opened'));
+    return;
+  }
+
+  pendingWhatsAppText = text;
+  const qrImg = document.getElementById('whatsappQrImg');
+  qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(waUrl);
+  document.getElementById('whatsappQrModal').classList.add('active');
+}
+
+function copyWhatsAppMessage() {
+  navigator.clipboard.writeText(pendingWhatsAppText)
+    .then(() => showToast(t('toast_copied')))
+    .catch(() => showToast(t('toast_copy_failed')));
+}
+
+const FALLBACK_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="100%" height="100%" fill="#F5EDE4"/><text x="50%" y="50%" font-family="sans-serif" font-size="16" fill="#A89484" text-anchor="middle" dominant-baseline="middle">Sin imagen</text></svg>`
+);
+let clientId = null;
+function cartKey() { return 'tienda_cart_' + (storeId || 'none'); }
+let cart = JSON.parse(localStorage.getItem(cartKey()) || '[]');
+let allProducts = [];
+let categories = [];
+let isAdmin = false;
+let currentCategory = 'all';
+let currentSearch = '';
+
+// Códigos de país para el selector de WhatsApp (ordenados: LatAm primero, luego el resto)
+const COUNTRY_CODES = [
+  { code: '57', flag: '🇨🇴', name: 'Colombia' },
+  { code: '52', flag: '🇲🇽', name: 'México' },
+  { code: '54', flag: '🇦🇷', name: 'Argentina' },
+  { code: '56', flag: '🇨🇱', name: 'Chile' },
+  { code: '51', flag: '🇵🇪', name: 'Perú' },
+  { code: '593', flag: '🇪🇨', name: 'Ecuador' },
+  { code: '58', flag: '🇻🇪', name: 'Venezuela' },
+  { code: '591', flag: '🇧🇴', name: 'Bolivia' },
+  { code: '595', flag: '🇵🇾', name: 'Paraguay' },
+  { code: '598', flag: '🇺🇾', name: 'Uruguay' },
+  { code: '506', flag: '🇨🇷', name: 'Costa Rica' },
+  { code: '507', flag: '🇵🇦', name: 'Panamá' },
+  { code: '502', flag: '🇬🇹', name: 'Guatemala' },
+  { code: '503', flag: '🇸🇻', name: 'El Salvador' },
+  { code: '504', flag: '🇭🇳', name: 'Honduras' },
+  { code: '505', flag: '🇳🇮', name: 'Nicaragua' },
+  { code: '1', flag: '🇩🇴', name: 'Rep. Dominicana' },
+  { code: '53', flag: '🇨🇺', name: 'Cuba' },
+  { code: '1', flag: '🇵🇷', name: 'Puerto Rico' },
+  { code: '34', flag: '🇪🇸', name: 'España' },
+  { code: '1', flag: '🇺🇸', name: 'Estados Unidos' },
+  { code: '1', flag: '🇨🇦', name: 'Canadá' },
+  { code: '55', flag: '🇧🇷', name: 'Brasil' },
+  { code: '44', flag: '🇬🇧', name: 'Reino Unido' },
+  { code: '33', flag: '🇫🇷', name: 'Francia' },
+];
+const DEFAULT_COUNTRY_CODE = '57';
+
+function populatePhoneCodeSelects() {
+  const selects = [document.getElementById('newStoreWhatsappCode'), document.getElementById('accStoreWhatsappCode'), document.getElementById('recoverWhatsappCode')];
+  selects.forEach(sel => {
+    if (!sel) return;
+    sel.innerHTML = COUNTRY_CODES.map(c => `<option value="${c.code}">${c.flag} +${c.code} ${c.name}</option>`).join('');
+    sel.value = DEFAULT_COUNTRY_CODE;
+  });
+}
+
+// Separa un número guardado (ej: "573001234567") en { code, number } usando la lista de códigos conocidos.
+function splitWhatsappNumber(full) {
+  const digits = (full || '').replace(/\D/g, '');
+  if (!digits) return { code: DEFAULT_COUNTRY_CODE, number: '' };
+  const sortedCodes = [...new Set(COUNTRY_CODES.map(c => c.code))].sort((a, b) => b.length - a.length);
+  const match = sortedCodes.find(code => digits.startsWith(code) && digits.length > code.length);
+  if (match) return { code: match, number: digits.slice(match.length) };
+  return { code: DEFAULT_COUNTRY_CODE, number: digits };
+}
+
+function initApp() {
+  populatePhoneCodeSelects();
+  if(!storeId) { showLanding(false); return; }
+  storeRef().get().then(doc => {
+    if(!doc.exists) { showLanding(true); return; }
+    startAuth();
+  }).catch(() => showLanding(true));
+}
+
+function showLanding(notFound) {
+  document.querySelector('.tab-bar').style.display = 'none';
+  document.querySelector('.views').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  document.getElementById('landingNotFound').style.display = notFound ? 'block' : 'none';
+}
+
+function startAuth() {
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      auth.signInAnonymously().catch(err => {
+        console.error('Error de autenticación:', err);
+        alert(t('alert_auth_failed') + err.message + t('alert_auth_hint'));
+      });
+      return;
+    }
+
+    clientId = user.uid;
+
+    if(user.isAnonymous) {
+      isAdmin = false;
+      onAdminStatusReady();
+      return;
+    }
+
+    db.collection('admins').doc(user.uid).get().then(doc => {
+      isAdmin = doc.exists && doc.data().storeId === storeId;
+      onAdminStatusReady();
+    }).catch(() => { isAdmin = false; onAdminStatusReady(); });
+  });
+}
+
+function onAdminStatusReady() {
+  document.getElementById('headerLogoBtn').classList.toggle('admin', isAdmin);
+  document.getElementById('adminControlsArea').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('adminToggleBar').style.display = isAdmin ? 'none' : 'flex';
+  document.getElementById('logoutBtn').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('stockFilterBar').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('clearOrdersBtn').style.display = isAdmin ? 'block' : 'none';
+  if(!isAdmin) currentStockFilter = 'all';
+
+  loadStoreConfig();
+  loadCategories();
+  loadProducts();
+  loadOrders();
+
+  if(isAdmin && sessionStorage.getItem('justCreatedStore') === '1') {
+    sessionStorage.removeItem('justCreatedStore');
+    setTimeout(() => {
+      openAccountModal();
+      showToast(t('toast_store_created_share_hint'));
+    }, 400);
+  }
+}
+
+function openAdminPanel() {
+  if(isAdmin) openAccountModal(); else openLoginModal();
+}
+
+let loginMode = 'login';
+function openLoginModal() {
+  loginMode = 'login';
+  document.getElementById('createStoreFields').style.display = 'none';
+  document.getElementById('loginModalTitle').textContent = t('login_title');
+  document.getElementById('loginSubmitBtn').textContent = t('login_btn');
+  document.getElementById('loginSubmitBtn').onclick = loginAdmin;
+  document.getElementById('loginModal').classList.add('active');
+}
+function openCreateStoreModal() {
+  openLoginModal();
+  toggleLoginMode();
+}
+function toggleLoginMode() {
+  loginMode = loginMode === 'login' ? 'create' : 'login';
+  const isCreate = loginMode === 'create';
+  document.getElementById('createStoreFields').style.display = isCreate ? 'block' : 'none';
+  document.getElementById('loginModalTitle').textContent = isCreate ? t('create_store_title') : t('login_title');
+  document.getElementById('loginSubmitBtn').textContent = isCreate ? t('create_store_btn') : t('login_btn');
+  document.getElementById('loginSubmitBtn').onclick = isCreate ? createStore : loginAdmin;
+}
+
+function openRecoverModal() {
+  closeModals();
+  document.getElementById('recoverWhatsappNumber').value = '';
+  document.getElementById('recoverWhatsappCode').value = DEFAULT_COUNTRY_CODE;
+  document.getElementById('recoverFormSection').style.display = 'block';
+  document.getElementById('recoverResultSection').style.display = 'none';
+  const btn = document.getElementById('recoverSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = t('recover_submit_btn');
+  document.getElementById('recoverModal').classList.add('active');
+}
+
+function recoverPassword() {
+  const code = document.getElementById('recoverWhatsappCode').value;
+  const number = document.getElementById('recoverWhatsappNumber').value.trim().replace(/\D/g, '');
+  if (!number) { alert(t('alert_recover_number_required')); return; }
+  const whatsapp = code + number;
+
+  const btn = document.getElementById('recoverSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = t('recover_loading');
+
+  const fd = new FormData();
+  fd.append('action', 'recoverPassword');
+  fd.append('whatsapp', whatsapp);
+
+  fetch(UPLOAD_WORKER_URL, { method: 'POST', body: fd })
+    .then(res => res.json().then(data => ({ ok: res.ok, data })))
+    .then(({ ok, data }) => {
+      btn.disabled = false;
+      btn.textContent = t('recover_submit_btn');
+      if (!ok || !data || data.error) {
+        alert((data && data.error) || t('alert_recover_generic_error'));
+        return;
+      }
+      document.getElementById('recoverUsernameResult').textContent = data.username;
+      document.getElementById('recoverPasswordResult').textContent = data.tempPassword;
+      document.getElementById('recoverFormSection').style.display = 'none';
+      document.getElementById('recoverResultSection').style.display = 'block';
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = t('recover_submit_btn');
+      alert(t('alert_recover_generic_error') + (err.message || ''));
+    });
+}
+
+function openLogoModal() { 
+  document.getElementById('newLogoImg').value = '';
+  document.getElementById('logoModal').classList.add('active'); 
+}
+function closeModals(e) { 
+  if(!e || e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close')) {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active')); 
+  }
+}
+
+function togglePassword() {
+  const input = document.getElementById('adminPass');
+  const btn = document.getElementById('passToggleBtn');
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁️';
+}
+
+const ADMIN_EMAIL_DOMAIN = "@general-tienda.app";
+function usernameToEmail(username) {
+  return username.toLowerCase() + ADMIN_EMAIL_DOMAIN;
+}
+function isValidUsername(username) {
+  return /^[a-zA-Z0-9]{8}$/.test(username);
+}
+
+function loginAdmin() {
+  const username = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPass').value;
+  if(!isValidUsername(username)) return alert(t('alert_username_format'));
+  auth.signInWithEmailAndPassword(usernameToEmail(username), pass).then(cred => {
+    return db.collection('admins').doc(cred.user.uid).get();
+  }).then(doc => {
+    if(!doc.exists) {
+      auth.signOut();
+      alert(t('alert_no_store_for_account'));
+      return;
+    }
+    const theirStoreId = doc.data().storeId;
+    if(theirStoreId !== storeId) {
+      closeModals();
+      showToast(t('toast_redirecting_to_store'));
+      goToStore(theirStoreId);
+    } else {
+      closeModals(); showToast(t('toast_welcome_admin'));
+    }
+  }).catch(e => alert(t('alert_login_error') + e.message));
+}
+
+function createStore() {
+  const username = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPass').value;
+  const newName = document.getElementById('newStoreName').value.trim();
+  const newWhatsappCode = document.getElementById('newStoreWhatsappCode').value;
+  const newWhatsappNumber = document.getElementById('newStoreWhatsappNumber').value.trim().replace(/\D/g, '');
+  const newWhatsapp = newWhatsappNumber ? newWhatsappCode + newWhatsappNumber : '';
+  if(!isValidUsername(username)) return alert(t('alert_username_format'));
+  if(!pass || pass.length < 6) return alert(t('alert_password_short'));
+  if(!newName) return alert(t('alert_store_name_required'));
+  if(!newWhatsapp) return alert(t('alert_store_whatsapp_required'));
+
+  auth.createUserWithEmailAndPassword(usernameToEmail(username), pass).then(cred => {
+    const newStoreRef = db.collection('stores').doc();
+    return newStoreRef.set({
+      name: newName, whatsapp: newWhatsapp, logoUrl: '', ownerUid: cred.user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => db.collection('admins').doc(cred.user.uid).set({ storeId: newStoreRef.id, username }))
+      .then(() => newStoreRef.id);
+  }).then(newStoreId => {
+    closeModals();
+    showToast(t('toast_store_created'));
+    sessionStorage.setItem('justCreatedStore', '1');
+    goToStore(newStoreId);
+  }).catch(e => alert(t('alert_login_error') + e.message));
+}
+
+function logoutAdmin() {
+  auth.signOut();
+  closeModals();
+  showToast(t('toast_logged_out'));
+  goToStore(storeId);
+}
+
+function openAccountModal() {
+  const link = window.location.origin + window.location.pathname + '?tienda=' + storeId;
+  document.getElementById('storeLinkInput').value = link;
+  storeRef().get().then(doc => {
+    const d = doc.exists ? doc.data() : {};
+    document.getElementById('accStoreName').value = d.name || '';
+    const parsed = splitWhatsappNumber(d.whatsapp || '');
+    document.getElementById('accStoreWhatsappCode').value = parsed.code;
+    document.getElementById('accStoreWhatsappNumber').value = parsed.number;
+    const used = d.photosUploaded || 0;
+    document.getElementById('photoUsageInfo').textContent = `${t('photo_usage_label')}: ${used} / ${MAX_STORE_PHOTOS}`;
+  }).catch(() => {});
+  document.getElementById('accCurrentPass').value = '';
+  document.getElementById('accNewPass').value = '';
+  document.getElementById('accountModal').classList.add('active');
+}
+
+function saveStoreSettings() {
+  if(!isAdmin) return alert(t('alert_not_authorized'));
+  const name = document.getElementById('accStoreName').value.trim();
+  const accWhatsappCode = document.getElementById('accStoreWhatsappCode').value;
+  const accWhatsappNumber = document.getElementById('accStoreWhatsappNumber').value.trim().replace(/\D/g, '');
+  const whatsapp = accWhatsappNumber ? accWhatsappCode + accWhatsappNumber : '';
+  if(!name) return alert(t('alert_store_name_required'));
+  if(!whatsapp) return alert(t('alert_store_whatsapp_required'));
+  storeRef().set({ name, whatsapp }, { merge: true }).then(() => {
+    loadStoreConfig();
+    showToast(t('toast_store_settings_saved'));
+  }).catch(err => alert(t('alert_generic_error') + err.message));
+}
+
+function changeAdminPassword() {
+  if(!isAdmin) return alert(t('alert_not_authorized'));
+  const current = document.getElementById('accCurrentPass').value;
+  const newPass = document.getElementById('accNewPass').value;
+  if(!current || !newPass) return alert(t('alert_password_fields_required'));
+  if(newPass.length < 6) return alert(t('alert_password_short'));
+  const user = auth.currentUser;
+  const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
+  user.reauthenticateWithCredential(credential).then(() => user.updatePassword(newPass)).then(() => {
+    document.getElementById('accCurrentPass').value = '';
+    document.getElementById('accNewPass').value = '';
+    showToast(t('toast_password_changed'));
+  }).catch(e => alert(t('alert_login_error') + e.message));
+}
+
+function loadStoreConfig() {
+  storeRef().get().then(doc => {
+    const logoImg = document.getElementById('headerLogoImg');
+    const logoSvg = document.getElementById('headerLogoSvg');
+    const nameEl = document.getElementById('headerStoreName');
+    const d = doc.exists ? doc.data() : {};
+
+    if(d.logoUrl) {
+      logoImg.src = d.logoUrl;
+      logoImg.style.display = 'block';
+      logoSvg.style.display = 'none';
+    } else {
+      logoImg.style.display = 'none';
+      logoSvg.style.display = 'block';
+    }
+
+    nameEl.textContent = d.name || '';
+    storeWhatsapp = d.whatsapp || '';
+  }).catch(() => {});
+}
+
+function handleLogoClick() {
+  if(isAdmin) {
+    openLogoModal();
+  } else {
+    showToast(t('toast_only_admin_logo'));
+  }
+}
+
+function saveLogo() {
+  const file = document.getElementById('newLogoImg').files[0];
+  if(!file) return alert(t('alert_select_logo_image'));
+
+  closeModals();
+  showToast(t('toast_uploading_logo'));
+
+  storeRef().get()
+    .then(doc => {
+      const oldLogoUrl = doc.exists ? doc.data().logoUrl : null;
+      return oldLogoUrl ? deleteFromR2(oldLogoUrl) : Promise.resolve();
+    })
+    .then(() => uploadToR2(file))
+    .then(url => storeRef().set({ logoUrl: url }, { merge: true }))
+    .then(() => {
+      document.getElementById('newLogoImg').value = '';
+      loadStoreConfig();
+      showToast(t('toast_logo_updated'));
+    }).catch(err => alert(t('alert_logo_upload_error') + err.message));
+}
+
+function removeLogo() {
+  if (!isAdmin) return alert(t('alert_not_authorized'));
+  closeModals();
+  storeRef().get()
+    .then(doc => {
+      const oldLogoUrl = doc.exists ? doc.data().logoUrl : null;
+      return (oldLogoUrl ? deleteFromR2(oldLogoUrl) : Promise.resolve())
+        .then(() => storeRef().set({ logoUrl: '' }, { merge: true }));
+    })
+    .then(() => {
+      loadStoreConfig();
+      showToast(t('toast_logo_removed'));
+    }).catch(err => alert(t('alert_generic_error') + err.message));
+}
+
+function loadProducts() {
+  storeCol('products').orderBy('createdAt', 'desc').onSnapshot(snap => {
+    allProducts = [];
+    snap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
+    renderCategories();
+    renderProducts();
+  }, err => {
+    console.error('Error cargando productos:', err);
+  });
+}
+
+function slugify(str) {
+  return String(str ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function loadCategories() {
+  storeCol('categories').orderBy('createdAt', 'asc').onSnapshot(snap => {
+    categories = [];
+    snap.forEach(doc => categories.push({ id: doc.id, ...doc.data() }));
+    renderCategories();
+    populateCategorySelect();
+  }, err => console.error('Error cargando categorías:', err));
+}
+
+function renderCategories() {
+  const container = document.getElementById('categoryFilters');
+  let html = `<button class="filter-chip ${currentCategory === 'all' ? 'active' : ''}" data-filter="all" onclick="setCategory('all')">${t('filter_all')}</button>`;
+
+  if(isAdmin) {
+    html += `<button class="filter-chip-add" onclick="openCategoryModal()" title="${t('add_category_tooltip')}">+</button>`;
+  }
+
+  categories.forEach(cat => {
+    const key = slugify(cat.name);
+    const isActive = currentCategory === key ? 'active' : '';
+    html += `
+      <span class="chip-wrap">
+        <button class="filter-chip ${isActive}" data-filter="${key}" onclick="setCategory('${key}')">${escapeHtml(cat.name)}</button>
+        ${isAdmin ? `<button class="chip-delete-btn" onclick="deleteCategory('${cat.id}', event)" title="${t('delete_category_tooltip')}">✕</button>` : ''}
+      </span>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function openCategoryModal() {
+  if (!isAdmin) return alert(t('alert_login_required_category'));
+  document.getElementById('newCatName').value = '';
+  document.getElementById('categoryModal').classList.add('active');
+}
+
+function saveCategory() {
+  if (!isAdmin) return alert(t('alert_action_denied_admin'));
+  const name = document.getElementById('newCatName').value.trim();
+  if(!name) return alert(t('alert_category_name_required'));
+
+  const exists = categories.some(c => slugify(c.name) === slugify(name));
+  if(exists) return alert(t('alert_category_exists'));
+
+  storeCol('categories').add({
+    name, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    closeModals();
+    showToast(t('toast_category_created'));
+  }).catch(err => {
+    console.error(err);
+    alert(t('alert_category_create_error') + err.message);
+  });
+}
+
+function deleteCategory(id, event) {
+  if(event) event.stopPropagation();
+  if(!isAdmin) return alert(t('alert_action_not_allowed'));
+  if(confirm(t('confirm_delete_category'))) {
+    storeCol('categories').doc(id).delete().then(() => showToast(t('toast_category_deleted'))).catch(err => alert(err.message));
+  }
+}
+
+function populateCategorySelect(selected) {
+  const select = document.getElementById('newProdCat');
+  if(!select) return;
+  const current = selected !== undefined ? selected : select.value;
+
+  if(categories.length === 0) {
+    select.innerHTML = `<option value="">Crea una categoría primero (+)</option>`;
+    return;
+  }
+
+  select.innerHTML = `<option value="">Selecciona una categoría</option>` +
+    categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+  select.value = current || '';
+}
+
+let currentStockFilter = 'all';
+
+function setStockFilter(filter){
+  currentStockFilter = filter;
+  document.querySelectorAll('.stock-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.stockFilter === filter);
+  });
+  renderProducts();
+}
+
+function openImageLightbox(src, alt) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightboxImg').alt = alt || '';
+  document.getElementById('imageLightbox').classList.add('active');
+}
+
+function closeImageLightbox() {
+  document.getElementById('imageLightbox').classList.remove('active');
+}
+
+function getCurrencyInfo(currency) {
+  const currencies = {
+    COP: { symbol:'$', code:'PESO', name:'Peso', locale:'es-CO' },
+    EUR: { symbol:'€', code:'EUR', name:'Euro', locale:'de-DE' },
+    USD: { symbol:'US$', code:'USD', name:'Dólar estadounidense', locale:'en-US' }
+  };
+  return currencies[currency] || currencies.COP;
+}
+
+function formatMoney(value, currency='COP') {
+  const info = getCurrencyInfo(currency);
+  const number = Number(value) || 0;
+  try {
+    const formatted = new Intl.NumberFormat(info.locale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(number);
+    return `${info.symbol} ${formatted} ${info.code}`;
+  } catch(e) {
+    return `${info.symbol} ${number} ${info.code}`;
+  }
+}
+
+function getCurrencyTotals(items) {
+  return items.reduce((totals, item) => {
+    const currency = item.currency || 'COP';
+    totals[currency] = (totals[currency] || 0) + (Number(item.price) || 0) * (Number(item.qty) || 0);
+    return totals;
+  }, {});
+}
+
+function formatCurrencyTotals(totals) {
+  if (!totals || typeof totals !== 'object') return '';
+  return Object.entries(totals).map(([currency, total]) => formatMoney(total, currency)).join(' + ');
+}
+
+function renderProducts() {
+  const grid = document.getElementById('productGrid');
+  const stockFilter = isAdmin ? currentStockFilter : 'all';
+
+  let filtered = allProducts.filter(p => {
+    const matchCat = currentCategory === 'all' || (p.category && slugify(p.category) === currentCategory);
+    const matchSearch = p.name.toLowerCase().includes(currentSearch.toLowerCase());
+
+    const stock = Number(p.stock ?? 10);
+    const minStock = Number(p.minStock ?? 2);
+    const isOut = stock <= 0;
+    const isLow = !isOut && stock <= minStock;
+
+    let matchStock = true;
+    if (stockFilter === 'available') matchStock = !isOut;
+    else if (stockFilter === 'low') matchStock = isLow;
+    else if (stockFilter === 'out') matchStock = isOut;
+
+    return matchCat && matchSearch && matchStock;
+  });
+
+  grid.innerHTML = filtered.length ? filtered.map(p => {
+    const stock = Number(p.stock ?? 10);
+    const minStock = Number(p.minStock ?? 2);
+    const isOut = stock <= 0;
+
+    let warningBadge = (isAdmin && !isOut && stock <= minStock) ? `<div class="stock-warning-badge">${t('low_stock_prefix')} (${stock})</div>` : '';
+    const outOverlay = isOut ? `<div class="out-of-stock-overlay">${isAdmin ? t('not_available_admin') : t('not_available')}</div>` : '';
+    const addBtn = isOut ? '' : `<button class="btn-sm" style="background:var(--text-primary); color:white;" onclick="addToCart('${p.id}')">${t('add_btn')}</button>`;
+    const stockText = isAdmin ? `<div class="product-details-text">${t('stock_prefix')}: ${stock}</div>` : '';
+
+    const adminControls = isAdmin ? `
+      <div class="admin-product-controls" style="display:flex; gap:5px; margin-top:5px; position:relative; z-index:5;">
+        <button type="button" class="btn-sm" style="background:var(--surface-muted);" onclick="event.stopPropagation(); openEditModal('${p.id}')">${t('edit_btn')}</button>
+        <button type="button" class="btn-sm" style="background:#dc2626; color:#fff;" onclick="event.stopPropagation(); deleteProduct('${p.id}')">${t('delete_product_btn')}</button>
+      </div>
+    ` : '';
+    
+    return `
+    <div class="product-card">
+      ${outOverlay}
+      <div class="product-img"><img src="${p.image || FALLBACK_IMG}" alt="${escapeHtml(p.name)}" onerror="this.onerror=null;this.src='${FALLBACK_IMG}';" onclick="event.stopPropagation(); openImageLightbox(this.src, this.alt)"></div>
+      <div class="product-info">
+        <div class="product-name">${escapeHtml(p.name)}</div>
+        <div class="product-details-text">${t('size_prefix')}: ${escapeHtml(p.size || t('size_default'))} | ${t('color_prefix')}: ${escapeHtml(p.colors || t('color_default'))}</div>
+        ${stockText}
+        ${warningBadge}
+        <div class="product-price">${formatMoney(p.price, p.currency || 'COP')}</div>
+        <div class="product-actions">${addBtn}</div>
+        ${adminControls}
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty-state" style="grid-column:1/-1;"><p>${t('no_products')}</p></div>`;
+}
+
+function setCategory(cat) { currentCategory = cat; renderCategories(); renderProducts(); }
+function filterProducts() { currentSearch = document.getElementById('searchInput').value; renderProducts(); }
+
+function openAddModal() {
+  if (!isAdmin) return alert(t('alert_admin_login_required'));
+  if (allProducts.length >= MAX_STORE_PRODUCTS) {
+    return alert(t('alert_product_limit_reached').replace('{max}', MAX_STORE_PRODUCTS));
+  }
+  document.getElementById('modalProductTitle').textContent = t('upload_product_title');
+  document.getElementById('editProdId').value = '';
+  document.getElementById('newProdName').value = '';
+  document.getElementById('newProdPrice').value = '';
+  document.getElementById('newProdCurrency').value = 'COP';
+  populateCategorySelect('');
+  document.getElementById('newProdSize').value = '';
+  document.getElementById('newProdColors').value = '';
+  document.getElementById('newProdStock').value = '10';
+  document.getElementById('newProdMinStock').value = '3';
+  document.getElementById('newProdImg').value = '';
+  document.getElementById('addProductModal').classList.add('active');
+}
+
+function openEditModal(id) {
+  const p = allProducts.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('modalProductTitle').textContent = t('edit_product_title');
+  document.getElementById('editProdId').value = p.id;
+  document.getElementById('newProdName').value = p.name || '';
+  document.getElementById('newProdPrice').value = p.price || '';
+  document.getElementById('newProdCurrency').value = p.currency || 'COP';
+  populateCategorySelect(p.category || '');
+  document.getElementById('newProdSize').value = p.size || '';
+  document.getElementById('newProdColors').value = p.colors || '';
+  document.getElementById('newProdStock').value = p.stock ?? 10;
+  document.getElementById('newProdMinStock').value = p.minStock ?? 3;
+  document.getElementById('newProdImg').value = '';
+  document.getElementById('addProductModal').classList.add('active');
+}
+
+function saveProduct() {
+  if (!isAdmin) return alert(t('alert_not_authorized'));
+  const editId = document.getElementById('editProdId').value;
+  const name = document.getElementById('newProdName').value;
+  const price = document.getElementById('newProdPrice').value;
+  const currency = document.getElementById('newProdCurrency').value || 'COP';
+  const cat = document.getElementById('newProdCat').value.trim();
+  const size = document.getElementById('newProdSize').value.trim();
+  const colors = document.getElementById('newProdColors').value.trim();
+  const stock = document.getElementById('newProdStock').value;
+  const minStock = document.getElementById('newProdMinStock').value;
+  const file = document.getElementById('newProdImg').files[0];
+
+  if(!name || !price || !cat) return alert(t('alert_required_fields'));
+  if(stock !== '' && Number(stock) < 0) return alert(t('alert_stock_negative'));
+  if(minStock !== '' && Number(minStock) < 0) return alert(t('alert_min_stock_negative'));
+  if(!editId && allProducts.length >= MAX_STORE_PRODUCTS) {
+    return alert(t('alert_product_limit_reached').replace('{max}', MAX_STORE_PRODUCTS));
+  }
+
+  closeModals();
+  showToast(editId ? t('toast_updating_product') : t('toast_saving_product'));
+
+  const saveData = (imageUrl) => {
+    const dataObj = {
+      name, price: Number(price), currency, category: cat, 
+      size: size || t('size_default'), colors: colors || t('color_default'), 
+      stock: Number(stock === '' ? 0 : stock), minStock: Number(minStock === '' ? 0 : minStock)
+    };
+    if(imageUrl) {
+      dataObj.image = imageUrl;
+    } else if (!editId) {
+      dataObj.image = FALLBACK_IMG;
+    }
+
+    let promise = editId ? storeCol('products').doc(editId).update(dataObj) : 
+      storeCol('products').add({...dataObj, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+
+    promise.then(() => showToast(t('toast_operation_success'))).catch(err => alert(t('alert_generic_error') + err.message));
+  };
+
+  if(file) {
+    // Si estamos editando y ya había una foto real, la borramos primero para
+    // liberar el cupo (así "reemplazar" no cuenta como una foto nueva extra).
+    const existingProduct = editId ? allProducts.find(x => x.id === editId) : null;
+    const oldImageUrl = existingProduct ? existingProduct.image : null;
+
+    (oldImageUrl ? deleteFromR2(oldImageUrl) : Promise.resolve())
+      .then(() => uploadToR2(file))
+      .then(url => saveData(url))
+      .catch(err => alert(t('alert_image_upload_error') + err.message));
+  } else {
+    saveData(null);
+  }
+}
+
+function deleteProduct(id) {
+  if(!isAdmin) return;
+  if(confirm(t('confirm_delete_product'))) {
+    const p = allProducts.find(x => x.id === id);
+    storeCol('products').doc(id).delete().then(() => {
+      showToast(t('toast_product_deleted'));
+      if (p && p.image) deleteFromR2(p.image);
+    });
+  }
+}
+
+function addToCart(id) {
+  const p = allProducts.find(x => x.id === id);
+  if(!p || (p.stock ?? 10) <= 0) return alert(t('alert_product_not_available'));
+
+  const existing = cart.find(item => item.id === id);
+  if(existing && existing.qty + 1 > p.stock) return alert(t('toast_no_stock_available'));
+
+  if(existing) {
+    existing.qty++;
+    existing.price = p.price;
+    existing.currency = p.currency || 'COP';
+  } else cart.push({id, qty:1, name: p.name, price: p.price, currency: p.currency || 'COP', image: p.image});
+  saveCart(); renderCart(); showToast(t('toast_added_to_cart'));
+}
+
+function saveCart() { localStorage.setItem(cartKey(), JSON.stringify(cart)); updateCartBadge(); }
+function updateCartBadge() { 
+  const count = cart.reduce((s,i) => s + i.qty, 0); 
+  const badge = document.getElementById('cartBadge');
+  badge.style.display = count > 0 ? 'flex' : 'none';
+  badge.innerText = count;
+}
+
+function renderCart() {
+  const container = document.getElementById('cartItems');
+  if(cart.length === 0) {
+    container.innerHTML = ''; document.getElementById('cartEmpty').style.display = 'block'; document.getElementById('cartSummary').style.display = 'none'; return;
+  }
+  document.getElementById('cartEmpty').style.display = 'none'; document.getElementById('cartSummary').style.display = 'block';
+  
+  let total = 0;
+  container.innerHTML = cart.map((item, index) => {
+    total += item.price * item.qty;
+    return `
+      <div class="cart-item">
+        <div class="cart-img"><img src="${item.image || FALLBACK_IMG}" onerror="this.onerror=null;this.src='${FALLBACK_IMG}';"></div>
+        <div class="cart-details">
+          <div class="cart-name">${escapeHtml(item.name)}</div>
+          <div class="cart-price">${formatMoney(item.price * item.qty, item.currency || 'COP')}</div>
+          <div class="qty-controls">
+            <button class="qty-btn" onclick="changeQty(${index}, -1)">−</button>
+            <span class="qty-val">${item.qty}</span>
+            <button class="qty-btn" onclick="changeQty(${index}, 1)">+</button>
+            <button class="cart-remove" onclick="removeCart(${index})">🗑</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('cartTotal').innerText = formatCurrencyTotals(getCurrencyTotals(cart));
+}
+
+function changeQty(index, delta) {
+  const item = cart[index];
+  if(!item) return;
+  const product = allProducts.find(p => p.id === item.id);
+  const stock = product ? Number(product.stock ?? 10) : Infinity;
+  const newQty = item.qty + delta;
+  if(newQty < 1) return removeCart(index);
+  if(newQty > stock) return showToast(t('toast_no_stock'));
+  item.qty = newQty;
+  saveCart(); renderCart();
+}
+
+function removeCart(index) { cart.splice(index, 1); saveCart(); renderCart(); }
+
+function sendWhatsAppOrder() {
+  const name = document.getElementById('orderName').value;
+  const phone = document.getElementById('orderPhone').value;
+  if(!name || !phone) return alert(t('alert_name_phone_required'));
+
+  let total = 0;
+  let text = `${t('wa_order_hello')} ${name}${t('wa_order_intro')}\n\n`;
+  cart.forEach(item => {
+    const currency = item.currency || 'COP';
+    text += `• ${item.name} (x${item.qty}) = ${formatMoney(item.price * item.qty, currency)}\n`;
+    total += item.price * item.qty;
+  });
+  const currencyTotals = getCurrencyTotals(cart);
+  const totalText = formatCurrencyTotals(currencyTotals);
+  text += `\n${t('wa_order_total')}: ${totalText}\n${t('wa_order_phone')}: ${phone}`;
+
+  const batch = db.batch();
+  cart.forEach(item => {
+    const prodRef = storeCol('products').doc(item.id);
+    const originalProd = allProducts.find(p => p.id === item.id);
+    if(originalProd) {
+      batch.update(prodRef, { stock: Math.max(0, (originalProd.stock || 10) - item.qty) });
+    }
+  });
+
+  batch.commit().then(() => {
+    return storeCol('orders').add({
+      clientId, customerName: name, phone, items: cart, total, currencyTotals: getCurrencyTotals(cart), status: 'Pendiente', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }).then(() => {
+    cart = []; saveCart(); renderCart(); switchView('pedidos');
+    openWhatsApp(text);
+  }).catch(err => alert(t('alert_order_error') + err.message));
+}
+
+let lastOrdersDocs = null;
+
+function loadOrders() {
+  let query = isAdmin ? storeCol('orders') : storeCol('orders').where('clientId', '==', clientId);
+  query.orderBy('createdAt', 'desc').onSnapshot(snap => {
+    lastOrdersDocs = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+    renderOrdersList(lastOrdersDocs);
+  }, () => {});
+}
+
+function renderOrdersList(docs) {
+  const list = document.getElementById('ordersList');
+  if (!docs.length) { list.innerHTML = `<div class="empty-state"><p>${t('no_orders')}</p></div>`; return; }
+
+  list.innerHTML = docs.map(({ id, data: o }) => {
+    const isDelivered = o.status === 'Entregado';
+    const adminBtns = isAdmin ? `
+      <div class="order-actions">
+        ${isDelivered ? `
+          <button class="btn-sm" disabled style="opacity:0.55; cursor:not-allowed;">${t('order_btn_edited')}</button>
+          <button class="btn-sm" onclick="reopenOrder('${id}')" title="${t('confirm_reopen_order')}">${t('order_btn_reopen')}</button>
+        ` : `
+          <button class="btn-sm" onclick="changeStatus('${id}', 'Enviado')">${t('order_btn_send')}</button>
+          <button class="btn-sm" onclick="changeStatus('${id}', 'Entregado')">${t('order_btn_deliver')}</button>
+        `}
+        <button class="btn-sm" onclick="deleteOrder('${id}')" title="${t('order_btn_delete')}" style="color:var(--danger); border-color:var(--danger);">${t('order_btn_delete')}</button>
+      </div>` : '';
+
+    return `
+      <div class="order-card">
+        <div class="order-header">
+          <strong>${escapeHtml(o.customerName)}</strong>
+          <span class="order-status status-${o.status}">${escapeHtml(t('status_' + o.status))}</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-secondary)">${o.items.map(i=>`${escapeHtml(i.name)} (x${i.qty})`).join(', ')}</p>
+        <p><strong>${t('order_total')}: ${o.currencyTotals ? formatCurrencyTotals(o.currencyTotals) : formatMoney(o.total, o.currency || 'COP')}</strong></p>
+        ${adminBtns}
+      </div>`;
+  }).join('');
+}
+
+function changeStatus(id, status) { if(isAdmin) storeCol('orders').doc(id).update({status}); }
+
+function reopenOrder(id) {
+  if(!isAdmin) return;
+  if(!confirm(t('confirm_reopen_order'))) return;
+  storeCol('orders').doc(id).update({status:'Enviado'});
+}
+
+function deleteOrder(id) {
+  if(!isAdmin) return;
+  if(!confirm(t('confirm_delete_order'))) return;
+  storeCol('orders').doc(id).delete()
+    .then(() => showToast(t('toast_order_deleted')))
+    .catch(err => alert(t('alert_delete_order_error') + err.message));
+}
+
+function clearAllOrders() {
+  if(!isAdmin) return;
+  if(!confirm(t('confirm_clear_orders'))) return;
+  const typed = prompt(t('prompt_clear_orders'));
+  if(typed !== 'BORRAR' && typed !== 'DELETE' && typed !== 'SUPPRIMER') { showToast(t('toast_delete_cancelled')); return; }
+
+  storeCol('orders').get().then(snap => {
+    if(snap.empty) { showToast(t('toast_no_orders_to_delete')); return; }
+    const batch = db.batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    return batch.commit();
+  }).then(() => showToast(t('toast_orders_deleted')))
+    .catch(err => alert(t('alert_clear_orders_error') + err.message));
+}
+
+function sendWhatsAppMessage() {
+  const name = document.getElementById('chatName').value.trim();
+  const message = document.getElementById('chatMessage').value.trim();
+
+  if(!message) return alert(t('alert_chat_message_required'));
+
+  const text = `${t('wa_chat_hello')} ${name || t('wa_chat_default_name')}.\n\n${message}`;
+  openWhatsApp(text);
+
+  document.getElementById('chatMessage').value = '';
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(view).classList.add('active');
+  document.querySelector(`[data-view="${view}"]`).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+applyStaticTranslations();
+renderCart();
+updateCartBadge();
+initApp();
+</script>
+</body>
+</html>
